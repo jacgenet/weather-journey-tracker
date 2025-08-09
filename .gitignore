@@ -1,2 +1,5 @@
 .DS_Store
+<<<<<<< HEAD
 .DS_Store
+=======
+>>>>>>> 931dd1969 (Add .DS_Store to .gitignore)
