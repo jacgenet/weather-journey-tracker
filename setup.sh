@@ -96,7 +96,7 @@ setup_frontend() {
     if [ ! -f .env ]; then
         echo "Creating .env file..."
         cat > .env << EOF
-REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_API_URL=http://localhost:5001/api
 REACT_APP_MAP_API_KEY=your-map-api-key-here
 EOF
         echo "⚠️  Please edit frontend/.env with your actual configuration"
@@ -138,7 +138,7 @@ start_services() {
     echo ""
     echo "3. Access the application:"
     echo "   Frontend: http://localhost:3000"
-    echo "   Backend API: http://localhost:5000"
+    echo "   Backend API: http://localhost:5001"
 }
 
 # Main setup
