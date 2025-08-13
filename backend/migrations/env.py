@@ -1,10 +1,5 @@
 import logging
 from logging.config import fileConfig
-import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 from flask import current_app
 
@@ -37,36 +32,12 @@ def get_engine_url():
         return str(get_engine().url).replace('%', '%%')
 
 
-def get_database_url():
-    """Get database URL from environment or Flask app context"""
-    # First try to get from environment variable
-    db_url = os.environ.get('DATABASE_URL')
-    if db_url:
-        return db_url
-    
-    # If no environment variable, try Flask app context
-    try:
-        return get_engine_url()
-    except (RuntimeError, AttributeError):
-        # Fallback to default if neither is available
-        logger.warning("No database URL found in environment or Flask context. Using default.")
-        return "postgresql://jacquelinewallace:1719Zadie@localhost:5432/weather_journey_db"
-
-
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-
-# Set the database URL
-config.set_main_option('sqlalchemy.url', get_database_url())
-
-# Try to get target_db from Flask app context, fallback to None if not available
-try:
-    target_db = current_app.extensions['migrate'].db
-except (RuntimeError, AttributeError):
-    target_db = None
-    logger.warning("Flask app context not available. Some features may be limited.")
+config.set_main_option('sqlalchemy.url', get_engine_url())
+target_db = current_app.extensions['migrate'].db
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -75,16 +46,6 @@ except (RuntimeError, AttributeError):
 
 
 def get_metadata():
-    if target_db is None:
-        # If no target_db available, we need to import models directly
-        try:
-            from app.models import User, Location, WeatherRecord
-            from app import db
-            return db.metadata
-        except ImportError:
-            logger.error("Could not import models. Please ensure the app is properly configured.")
-            return None
-    
     if hasattr(target_db, 'metadatas'):
         return target_db.metadatas[None]
     return target_db.metadata
@@ -103,14 +64,8 @@ def run_migrations_offline():
 
     """
     url = config.get_main_option("sqlalchemy.url")
-    metadata = get_metadata()
-    
-    if metadata is None:
-        logger.error("Could not get metadata. Aborting migration.")
-        return
-    
     context.configure(
-        url=url, target_metadata=metadata, literal_binds=True
+        url=url, target_metadata=get_metadata(), literal_binds=True
     )
 
     with context.begin_transaction():
@@ -127,7 +82,7 @@ def run_migrations_online():
 
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
-    # reference: http://alembic.zzzcomputing.com/en/latest/cookbooks.html
+    # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
     def process_revision_directives(context, revision, directives):
         if getattr(config.cmd_opts, 'autogenerate', False):
             script = directives[0]
@@ -135,32 +90,16 @@ def run_migrations_online():
                 directives[:] = []
                 logger.info('No changes in schema detected.')
 
-    metadata = get_metadata()
-    if metadata is None:
-        logger.error("Could not get metadata. Aborting migration.")
-        return
-
-    try:
-        conf_args = current_app.extensions['migrate'].configure_args
-        if conf_args.get("process_revision_directives") is None:
-            conf_args["process_revision_directives"] = process_revision_directives
-    except (RuntimeError, AttributeError):
-        # If Flask app context is not available, use empty conf_args
-        conf_args = {}
+    conf_args = current_app.extensions['migrate'].configure_args
+    if conf_args.get("process_revision_directives") is None:
         conf_args["process_revision_directives"] = process_revision_directives
 
-    try:
-        connectable = get_engine()
-    except (RuntimeError, AttributeError):
-        # If we can't get the engine from Flask context, create one from URL
-        from sqlalchemy import create_engine
-        url = config.get_main_option("sqlalchemy.url")
-        connectable = create_engine(url)
+    connectable = get_engine()
 
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
-            target_metadata=metadata,
+            target_metadata=get_metadata(),
             **conf_args
         )
 

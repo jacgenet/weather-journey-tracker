@@ -204,11 +204,11 @@ python run.py
 
 You should see output like:
 ```
- * Running on http://0.0.0.0:5000
+ * Running on http://0.0.0.0:5001
  * Debug mode: on
 ```
 
-Visit `http://localhost:5000` to verify the backend is running.
+Visit `http://localhost:5001` to verify the backend is running.
 
 ## Step 4: Frontend Setup
 
@@ -232,7 +232,7 @@ cp .env.example .env
 
 Edit the `.env` file:
 ```env
-REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_API_URL=http://localhost:5001/api
 REACT_APP_MAP_API_KEY=your-map-api-key-here
 ```
 
@@ -284,7 +284,7 @@ npm start
 
 ### 6.3 Access the Application
 - Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
+- Backend API: http://localhost:5001
 
 ## Step 7: First-Time Setup
 
@@ -361,7 +361,7 @@ npm install
 #### Port Already in Use
 ```bash
 # Check what's using the port
-lsof -i :5000  # For backend
+lsof -i :5001  # For backend
 lsof -i :3000  # For frontend
 
 # Kill the process
