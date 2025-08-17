@@ -15,26 +15,20 @@ import {
   DialogActions,
   IconButton,
   Chip,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
-
-interface Location {
-  id: number;
-  name: string;
-  city: string;
-  country: string;
-  latitude: number;
-  longitude: number;
-  description?: string;
-  start_date?: string;
-  end_date?: string;
-}
+import { locationService, Location, CreateLocationData } from '../services/locationService';
 
 const Locations: React.FC = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     city: '',
@@ -48,22 +42,21 @@ const Locations: React.FC = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    // TODO: Fetch locations from API
-    // For now, using mock data
-    setLocations([
-      {
-        id: 1,
-        name: 'Central Park',
-        city: 'New York',
-        country: 'USA',
-        latitude: 40.785091,
-        longitude: -73.968285,
-        description: 'Beautiful urban park in Manhattan',
-        start_date: '2023-06-15',
-        end_date: '2023-06-18',
-      },
-    ]);
+    fetchLocations();
   }, []);
+
+  const fetchLocations = async () => {
+    try {
+      setLoading(true);
+      const fetchedLocations = await locationService.getLocations();
+      setLocations(fetchedLocations);
+    } catch (err) {
+      console.error('Failed to fetch locations:', err);
+      setError('Failed to load locations');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpenDialog = (location?: Location) => {
     if (location) {
@@ -109,34 +102,68 @@ const Locations: React.FC = () => {
     });
   };
 
-  const handleSubmit = () => {
-    if (editingLocation) {
-      // Update existing location
-      setLocations(locations.map(loc =>
-        loc.id === editingLocation.id
-          ? {
-              ...loc,
-              ...formData,
-              latitude: parseFloat(formData.latitude),
-              longitude: parseFloat(formData.longitude),
-            }
-          : loc
-      ));
-    } else {
-      // Add new location
-      const newLocation: Location = {
-        id: Date.now(),
-        ...formData,
-        latitude: parseFloat(formData.latitude),
-        longitude: parseFloat(formData.longitude),
-      };
-      setLocations([...locations, newLocation]);
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      
+      if (editingLocation) {
+        // Update existing location
+        const updatedLocation = await locationService.updateLocation(
+          editingLocation.id,
+          {
+            name: formData.name,
+            city: formData.city,
+            country: formData.country,
+            latitude: parseFloat(formData.latitude),
+            longitude: parseFloat(formData.longitude),
+            description: formData.description || undefined,
+            start_date: formData.start_date || undefined,
+            end_date: formData.end_date || undefined,
+          }
+        );
+        
+        setLocations(locations.map(loc =>
+          loc.id === editingLocation.id ? updatedLocation : loc
+        ));
+        setSuccess('Location updated successfully!');
+      } else {
+        // Create new location
+        const newLocation = await locationService.createLocation({
+          name: formData.name,
+          city: formData.city,
+          country: formData.country,
+          latitude: parseFloat(formData.latitude),
+          longitude: parseFloat(formData.longitude),
+          description: formData.description || undefined,
+          start_date: formData.start_date || undefined,
+          end_date: formData.end_date || undefined,
+        });
+        
+        setLocations([...locations, newLocation]);
+        setSuccess('Location added successfully!');
+      }
+      
+      handleCloseDialog();
+    } catch (err) {
+      console.error('Failed to save location:', err);
+      setError('Failed to save location. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    handleCloseDialog();
   };
 
-  const handleDelete = (id: number) => {
-    setLocations(locations.filter(loc => loc.id !== id));
+  const handleDelete = async (id: number) => {
+    try {
+      setLoading(true);
+      await locationService.deleteLocation(id);
+      setLocations(locations.filter(loc => loc.id !== id));
+      setSuccess('Location deleted successfully!');
+    } catch (err) {
+      console.error('Failed to delete location:', err);
+      setError('Failed to delete location. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatDateRange = (startDate?: string, endDate?: string) => {
@@ -145,6 +172,11 @@ const Locations: React.FC = () => {
       return new Date(startDate).toLocaleDateString();
     }
     return `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`;
+  };
+
+  const handleCloseSnackbar = () => {
+    setError(null);
+    setSuccess(null);
   };
 
   return (
@@ -158,10 +190,17 @@ const Locations: React.FC = () => {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => handleOpenDialog()}
+            disabled={loading}
           >
             Add Location
           </Button>
         </Box>
+
+        {loading && (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography>Loading locations...</Typography>
+          </Box>
+        )}
 
         <Grid container spacing={3}>
           {locations.map((location) => (
@@ -194,6 +233,7 @@ const Locations: React.FC = () => {
                   <IconButton
                     size="small"
                     onClick={() => handleOpenDialog(location)}
+                    disabled={loading}
                   >
                     <EditIcon />
                   </IconButton>
@@ -201,6 +241,7 @@ const Locations: React.FC = () => {
                     size="small"
                     color="error"
                     onClick={() => handleDelete(location.id)}
+                    disabled={loading}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -210,7 +251,7 @@ const Locations: React.FC = () => {
           ))}
         </Grid>
 
-        {locations.length === 0 && (
+        {!loading && locations.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Typography variant="h6" color="text.secondary">
               No locations added yet
@@ -235,6 +276,7 @@ const Locations: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               margin="normal"
               required
+              disabled={loading}
             />
             <TextField
               fullWidth
@@ -243,6 +285,7 @@ const Locations: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, city: e.target.value })}
               margin="normal"
               required
+              disabled={loading}
             />
             <TextField
               fullWidth
@@ -251,6 +294,7 @@ const Locations: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, country: e.target.value })}
               margin="normal"
               required
+              disabled={loading}
             />
             <Grid container spacing={2}>
               <Grid item xs={6}>
@@ -262,6 +306,7 @@ const Locations: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
                   margin="normal"
                   required
+                  disabled={loading}
                 />
               </Grid>
               <Grid item xs={6}>
@@ -273,6 +318,7 @@ const Locations: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
                   margin="normal"
                   required
+                  disabled={loading}
                 />
               </Grid>
             </Grid>
@@ -284,6 +330,7 @@ const Locations: React.FC = () => {
               margin="normal"
               multiline
               rows={3}
+              disabled={loading}
             />
             <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: 'text.secondary' }}>
               Visit Date Range (optional)
@@ -298,6 +345,7 @@ const Locations: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                   margin="normal"
                   InputLabelProps={{ shrink: true }}
+                  disabled={loading}
                 />
               </Grid>
               <Grid item xs={6}>
@@ -309,18 +357,33 @@ const Locations: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                   margin="normal"
                   InputLabelProps={{ shrink: true }}
+                  disabled={loading}
                 />
               </Grid>
             </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingLocation ? 'Update' : 'Add'}
+          <Button onClick={handleCloseDialog} disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} variant="contained" disabled={loading}>
+            {loading ? 'Saving...' : (editingLocation ? 'Update' : 'Add')}
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar open={!!success} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+          {success}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

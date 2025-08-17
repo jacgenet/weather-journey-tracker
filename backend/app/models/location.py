@@ -43,7 +43,7 @@ class Location(db.Model):
             'longitude': self.longitude,
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
-            'notes': self.notes,
+            'description': self.notes,  # Map notes to description for frontend
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'weather_records_count': len(self.weather_records)

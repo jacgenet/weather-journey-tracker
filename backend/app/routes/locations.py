@@ -101,7 +101,7 @@ def create_location():
             longitude=longitude,
             start_date=start_date,
             end_date=end_date,
-            notes=data.get('notes')
+            notes=data.get('description') or data.get('notes')  # Accept both description and notes
         )
         
         db.session.add(location)
@@ -154,8 +154,9 @@ def update_location(location_id):
                     return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
             else:
                 location.end_date = None
-        if 'notes' in data:
-            location.notes = data['notes']
+        if 'description' in data or 'notes' in data:
+            # Accept both description and notes fields
+            location.notes = data.get('description') or data.get('notes')
         
         # Validate that end_date is not before start_date
         if location.start_date and location.end_date and location.end_date < location.start_date:
