@@ -27,7 +27,8 @@ interface Location {
   latitude: number;
   longitude: number;
   description?: string;
-  visited_date?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 const Locations: React.FC = () => {
@@ -41,7 +42,8 @@ const Locations: React.FC = () => {
     latitude: '',
     longitude: '',
     description: '',
-    visited_date: '',
+    start_date: '',
+    end_date: '',
   });
   const { user } = useAuth();
 
@@ -57,7 +59,8 @@ const Locations: React.FC = () => {
         latitude: 40.785091,
         longitude: -73.968285,
         description: 'Beautiful urban park in Manhattan',
-        visited_date: '2023-06-15',
+        start_date: '2023-06-15',
+        end_date: '2023-06-18',
       },
     ]);
   }, []);
@@ -72,7 +75,8 @@ const Locations: React.FC = () => {
         latitude: location.latitude.toString(),
         longitude: location.longitude.toString(),
         description: location.description || '',
-        visited_date: location.visited_date || '',
+        start_date: location.start_date || '',
+        end_date: location.end_date || '',
       });
     } else {
       setEditingLocation(null);
@@ -83,7 +87,8 @@ const Locations: React.FC = () => {
         latitude: '',
         longitude: '',
         description: '',
-        visited_date: '',
+        start_date: '',
+        end_date: '',
       });
     }
     setOpenDialog(true);
@@ -99,7 +104,8 @@ const Locations: React.FC = () => {
       latitude: '',
       longitude: '',
       description: '',
-      visited_date: '',
+      start_date: '',
+      end_date: '',
     });
   };
 
@@ -131,6 +137,14 @@ const Locations: React.FC = () => {
 
   const handleDelete = (id: number) => {
     setLocations(locations.filter(loc => loc.id !== id));
+  };
+
+  const formatDateRange = (startDate?: string, endDate?: string) => {
+    if (!startDate) return '';
+    if (!endDate || startDate === endDate) {
+      return new Date(startDate).toLocaleDateString();
+    }
+    return `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`;
   };
 
   return (
@@ -168,9 +182,9 @@ const Locations: React.FC = () => {
                       {location.description}
                     </Typography>
                   )}
-                  {location.visited_date && (
+                  {(location.start_date || location.end_date) && (
                     <Chip
-                      label={`Visited: ${new Date(location.visited_date).toLocaleDateString()}`}
+                      label={`Visited: ${formatDateRange(location.start_date, location.end_date)}`}
                       size="small"
                       sx={{ mt: 1 }}
                     />
@@ -271,15 +285,33 @@ const Locations: React.FC = () => {
               multiline
               rows={3}
             />
-            <TextField
-              fullWidth
-              label="Date Visited (optional)"
-              type="date"
-              value={formData.visited_date}
-              onChange={(e) => setFormData({ ...formData, visited_date: e.target.value })}
-              margin="normal"
-              InputLabelProps={{ shrink: true }}
-            />
+            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: 'text.secondary' }}>
+              Visit Date Range (optional)
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  label="Start Date"
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  margin="normal"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  label="End Date"
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  margin="normal"
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+            </Grid>
           </Box>
         </DialogContent>
         <DialogActions>

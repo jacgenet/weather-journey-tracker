@@ -15,7 +15,11 @@ def get_locations():
     current_user_id = get_jwt_identity()
     
     try:
-        locations = Location.query.filter_by(user_id=current_user_id).order_by(Location.visit_date.desc()).all()
+        # Order by start_date if available, otherwise by creation date
+        locations = Location.query.filter_by(user_id=current_user_id).order_by(
+            Location.start_date.desc().nullslast(),
+            Location.created_at.desc()
+        ).all()
         
         return jsonify({
             'locations': [location.to_dict() for location in locations]
@@ -47,16 +51,30 @@ def create_location():
     data = request.get_json()
     
     # Validate required fields
-    required_fields = ['name', 'city', 'country', 'visit_date']
+    required_fields = ['name', 'city', 'country']
     for field in required_fields:
         if not data.get(field):
             return jsonify({'error': f'{field} is required'}), 400
     
-    # Validate date format
-    try:
-        visit_date = datetime.strptime(data['visit_date'], '%Y-%m-%d').date()
-    except ValueError:
-        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+    # Validate date formats if provided
+    start_date = None
+    end_date = None
+    
+    if data.get('start_date'):
+        try:
+            start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+    
+    if data.get('end_date'):
+        try:
+            end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+    
+    # Validate that end_date is not before start_date
+    if start_date and end_date and end_date < start_date:
+        return jsonify({'error': 'End date cannot be before start date'}), 400
     
     # Validate coordinates or get them from geocoding
     latitude = data.get('latitude')
@@ -81,7 +99,8 @@ def create_location():
             country=data['country'],
             latitude=latitude,
             longitude=longitude,
-            visit_date=visit_date,
+            start_date=start_date,
+            end_date=end_date,
             notes=data.get('notes')
         )
         
@@ -117,14 +136,30 @@ def update_location(location_id):
             location.city = data['city']
         if 'country' in data:
             location.country = data['country']
-        if 'visit_date' in data:
-            try:
-                visit_date = datetime.strptime(data['visit_date'], '%Y-%m-%d').date()
-                location.visit_date = visit_date
-            except ValueError:
-                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        if 'start_date' in data:
+            if data['start_date']:
+                try:
+                    start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+                    location.start_date = start_date
+                except ValueError:
+                    return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+            else:
+                location.start_date = None
+        if 'end_date' in data:
+            if data['end_date']:
+                try:
+                    end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+                    location.end_date = end_date
+                except ValueError:
+                    return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+            else:
+                location.end_date = None
         if 'notes' in data:
             location.notes = data['notes']
+        
+        # Validate that end_date is not before start_date
+        if location.start_date and location.end_date and location.end_date < location.start_date:
+            return jsonify({'error': 'End date cannot be before start date'}), 400
         
         # Update coordinates if provided or if city/country changed
         if 'latitude' in data and 'longitude' in data:
@@ -191,16 +226,23 @@ def get_location_stats():
         # Calculate statistics
         countries = set(loc.country for loc in locations)
         cities = set(f"{loc.city}, {loc.country}" for loc in locations)
-        visit_dates = [loc.visit_date for loc in locations]
+        
+        # Get all valid dates for statistics
+        all_dates = []
+        for loc in locations:
+            if loc.start_date:
+                all_dates.append(loc.start_date)
+            if loc.end_date:
+                all_dates.append(loc.end_date)
         
         stats = {
             'total_locations': len(locations),
             'countries_visited': len(countries),
             'cities_visited': len(cities),
             'date_range': {
-                'earliest': min(visit_dates).isoformat(),
-                'latest': max(visit_dates).isoformat()
-            } if visit_dates else None
+                'earliest': min(all_dates).isoformat(),
+                'latest': max(all_dates).isoformat()
+            } if all_dates else None
         }
         
         return jsonify(stats), 200
