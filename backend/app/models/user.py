@@ -35,8 +35,19 @@ class User(db.Model):
     
     def generate_tokens(self):
         """Generate access and refresh tokens"""
+        print(f"JWT Debug - Creating token for user ID: {self.id}")
         access_token = create_access_token(identity=self.id)
         refresh_token = create_refresh_token(identity=self.id)
+        print(f"JWT Debug - Access token created: {access_token[:50]}...")
+        
+        # Debug: Decode the token to see what's in it
+        try:
+            import jwt
+            decoded = jwt.decode(access_token, options={"verify_signature": False})
+            print(f"JWT Debug - Token payload: {decoded}")
+        except Exception as e:
+            print(f"JWT Debug - Could not decode token: {e}")
+        
         return {
             'access_token': access_token,
             'refresh_token': refresh_token,

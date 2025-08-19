@@ -29,10 +29,23 @@ def create_app(config_name='development'):
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
     
+    # Explicit JWT configuration
+    app.config['JWT_ALGORITHM'] = 'HS256'
+    app.config['JWT_DECODE_ALGORITHMS'] = ['HS256']
+    app.config['JWT_TOKEN_LOCATION'] = ['headers']
+    app.config['JWT_HEADER_NAME'] = 'Authorization'
+    app.config['JWT_HEADER_TYPE'] = 'Bearer'
+    
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    
+    # Debug: Log JWT configuration
+    print(f"JWT Debug - SECRET_KEY: {app.config['SECRET_KEY'][:10]}...")
+    print(f"JWT Debug - JWT_SECRET_KEY: {app.config['JWT_SECRET_KEY'][:10]}...")
+    print(f"JWT Debug - JWT_ACCESS_TOKEN_EXPIRES: {app.config['JWT_ACCESS_TOKEN_EXPIRES']}")
+    
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     
     # Register blueprints

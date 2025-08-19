@@ -12,20 +12,24 @@ locations_bp = Blueprint('locations', __name__)
 @jwt_required()
 def get_locations():
     """Get all locations for the current user"""
-    current_user_id = get_jwt_identity()
-    
+    print("JWT Debug - About to validate JWT token")
     try:
-        # Order by start_date if available, otherwise by creation date
-        locations = Location.query.filter_by(user_id=current_user_id).order_by(
-            Location.start_date.desc().nullslast(),
-            Location.created_at.desc()
-        ).all()
+        print("JWT Debug - JWT validation passed!")
+        current_user_id = get_jwt_identity()
+        print("JWT Debug - User ID:", current_user_id)
+        print("JWT Debug - Token type:", type(current_user_id))
         
-        return jsonify({
+        # Get locations for the current user
+        locations = Location.query.filter_by(user_id=current_user_id).order_by(Location.start_date.desc(), Location.created_at.desc()).all()
+        print("JWT Debug - Found", len(locations), "locations")
+        
+        return {
             'locations': [location.to_dict() for location in locations]
-        }), 200
+        }
     except Exception as e:
-        return jsonify({'error': 'Failed to fetch locations'}), 500
+        print("JWT Debug - Exception in get_locations:", e)
+        print("JWT Debug - Exception type:", type(e))
+        return {'error': str(e)}, 500
 
 @locations_bp.route('/<int:location_id>', methods=['GET'])
 @jwt_required()
@@ -47,74 +51,85 @@ def get_location(location_id):
 @jwt_required()
 def create_location():
     """Create a new location"""
-    current_user_id = get_jwt_identity()
-    data = request.get_json()
-    
-    # Validate required fields
-    required_fields = ['name', 'city', 'country']
-    for field in required_fields:
-        if not data.get(field):
-            return jsonify({'error': f'{field} is required'}), 400
-    
-    # Validate date formats if provided
-    start_date = None
-    end_date = None
-    
-    if data.get('start_date'):
-        try:
-            start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
-        except ValueError:
-            return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
-    
-    if data.get('end_date'):
-        try:
-            end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
-        except ValueError:
-            return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
-    
-    # Validate that end_date is not before start_date
-    if start_date and end_date and end_date < start_date:
-        return jsonify({'error': 'End date cannot be before start date'}), 400
-    
-    # Validate coordinates or get them from geocoding
-    latitude = data.get('latitude')
-    longitude = data.get('longitude')
-    
-    if not latitude or not longitude:
-        # Try to get coordinates from geocoding service
-        try:
-            coords = get_coordinates(f"{data['city']}, {data['country']}")
-            if coords:
-                latitude, longitude = coords
-            else:
-                return jsonify({'error': 'Could not determine coordinates for this location'}), 400
-        except Exception as e:
-            return jsonify({'error': 'Could not determine coordinates for this location'}), 400
-    
+    print("JWT Debug - About to validate JWT token in create_location")
     try:
-        location = Location(
-            user_id=current_user_id,
-            name=data['name'],
-            city=data['city'],
-            country=data['country'],
-            latitude=latitude,
-            longitude=longitude,
-            start_date=start_date,
-            end_date=end_date,
-            notes=data.get('description') or data.get('notes')  # Accept both description and notes
-        )
+        print("JWT Debug - JWT validation passed in create_location!")
+        current_user_id = get_jwt_identity()
+        print("JWT Debug - Creating location for user ID:", current_user_id)
         
-        db.session.add(location)
-        db.session.commit()
+        data = request.get_json()
+        print("JWT Debug - Received data:", data)
         
-        return jsonify({
-            'message': 'Location created successfully',
-            'location': location.to_dict()
-        }), 201
+        # Validate required fields
+        required_fields = ['name', 'city', 'country']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field} is required'}), 400
         
+        # Validate date formats if provided
+        start_date = None
+        end_date = None
+        
+        if data.get('start_date'):
+            try:
+                start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+        
+        if data.get('end_date'):
+            try:
+                end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+        
+        # Validate that end_date is not before start_date
+        if start_date and end_date and end_date < start_date:
+            return jsonify({'error': 'End date cannot be before start date'}), 400
+        
+        # Validate coordinates or get them from geocoding
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        
+        if not latitude or not longitude:
+            # Try to get coordinates from geocoding service
+            try:
+                coords = get_coordinates(f"{data['city']}, {data['country']}")
+                if coords:
+                    latitude, longitude = coords
+                else:
+                    return jsonify({'error': 'Could not determine coordinates for this location'}), 400
+            except Exception as e:
+                return jsonify({'error': 'Could not determine coordinates for this location'}), 400
+        
+        try:
+            location = Location(
+                user_id=current_user_id,
+                name=data['name'],
+                city=data['city'],
+                country=data['country'],
+                latitude=latitude,
+                longitude=longitude,
+                start_date=start_date,
+                end_date=end_date,
+                notes=data.get('description') or data.get('notes')  # Accept both description and notes
+            )
+            
+            db.session.add(location)
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Location created successfully',
+                'location': location.to_dict()
+            }), 201
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': 'Failed to create location'}), 500
+            
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': 'Failed to create location'}), 500
+        print("JWT Debug - Exception in create_location:", e)
+        print("JWT Debug - Exception type:", type(e))
+        return jsonify({'error': str(e)}), 500
 
 @locations_bp.route('/<int:location_id>', methods=['PUT'])
 @jwt_required()
