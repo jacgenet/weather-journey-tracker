@@ -4,71 +4,72 @@ from typing import Optional, Tuple
 
 class GeocodingService:
     def __init__(self):
-        self.api_key = os.environ.get('GEOCODING_API_KEY')
-        self.base_url = 'https://api.openweathermap.org/geo/1.0'
+        self.api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
+        self.base_url = 'https://maps.googleapis.com/maps/api/geocode/json'
         
     def get_coordinates(self, location_name: str) -> Optional[Tuple[float, float]]:
-        """Get coordinates for a location name"""
+        """Get coordinates for a location name using Google Geocoding API"""
         if not self.api_key:
             # Return mock coordinates for development
             return self._get_mock_coordinates(location_name)
         
         try:
-            url = f"{self.base_url}/direct"
             params = {
-                'q': location_name,
-                'limit': 1,
-                'appid': self.api_key
+                'address': location_name,
+                'key': self.api_key
             }
             
-            response = requests.get(url, params=params, timeout=10)
+            response = requests.get(self.base_url, params=params, timeout=10)
             response.raise_for_status()
             
             data = response.json()
             
-            if data and len(data) > 0:
-                location = data[0]
-                return (location['lat'], location['lon'])
-            
-            return None
+            if data['status'] == 'OK' and data['results']:
+                location = data['results'][0]['geometry']['location']
+                return (location['lat'], location['lng'])
+            elif data['status'] == 'ZERO_RESULTS':
+                print(f"No results found for: {location_name}")
+                return None
+            else:
+                print(f"Google Geocoding API error: {data['status']}")
+                return self._get_mock_coordinates(location_name)
             
         except requests.RequestException as e:
-            print(f"Geocoding API error: {e}")
+            print(f"Google Geocoding API request error: {e}")
             return self._get_mock_coordinates(location_name)
         except Exception as e:
-            print(f"Unexpected error in geocoding service: {e}")
+            print(f"Unexpected error in Google geocoding service: {e}")
             return self._get_mock_coordinates(location_name)
     
     def get_location_name(self, lat: float, lon: float) -> Optional[str]:
-        """Get location name from coordinates (reverse geocoding)"""
+        """Get location name from coordinates using Google Reverse Geocoding API"""
         if not self.api_key:
             return self._get_mock_location_name(lat, lon)
         
         try:
-            url = f"{self.base_url}/reverse"
             params = {
-                'lat': lat,
-                'lon': lon,
-                'limit': 1,
-                'appid': self.api_key
+                'latlng': f"{lat},{lon}",
+                'key': self.api_key
             }
             
-            response = requests.get(url, params=params, timeout=10)
+            response = requests.get(self.base_url, params=params, timeout=10)
             response.raise_for_status()
             
             data = response.json()
             
-            if data and len(data) > 0:
-                location = data[0]
-                return f"{location.get('name', '')}, {location.get('country', '')}"
+            if data['status'] == 'OK' and data['results']:
+                result = data['results'][0]
+                # Get the most specific address component
+                formatted_address = result.get('formatted_address', '')
+                return formatted_address
             
             return None
             
         except requests.RequestException as e:
-            print(f"Reverse geocoding API error: {e}")
+            print(f"Google Reverse Geocoding API error: {e}")
             return self._get_mock_location_name(lat, lon)
         except Exception as e:
-            print(f"Unexpected error in reverse geocoding service: {e}")
+            print(f"Unexpected error in Google reverse geocoding service: {e}")
             return self._get_mock_location_name(lat, lon)
     
     def _get_mock_coordinates(self, location_name: str) -> Tuple[float, float]:

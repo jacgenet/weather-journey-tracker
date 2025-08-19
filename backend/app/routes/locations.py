@@ -66,6 +66,9 @@ def create_location():
             if not data.get(field):
                 return jsonify({'error': f'{field} is required'}), 400
         
+        # Get address if provided
+        address = data.get('address')
+        
         # Validate date formats if provided
         start_date = None
         end_date = None
@@ -93,7 +96,9 @@ def create_location():
         if not latitude or not longitude:
             # Try to get coordinates from geocoding service
             try:
-                coords = get_coordinates(f"{data['city']}, {data['country']}")
+                # Use address if provided, otherwise use city + country
+                geocode_query = address if address else f"{data['city']}, {data['country']}"
+                coords = get_coordinates(geocode_query)
                 if coords:
                     latitude, longitude = coords
                 else:
@@ -105,6 +110,7 @@ def create_location():
             location = Location(
                 user_id=current_user_id,
                 name=data['name'],
+                address=address,
                 city=data['city'],
                 country=data['country'],
                 latitude=latitude,
@@ -147,6 +153,8 @@ def update_location(location_id):
         # Update fields
         if 'name' in data:
             location.name = data['name']
+        if 'address' in data:
+            location.address = data['address']
         if 'city' in data:
             location.city = data['city']
         if 'country' in data:
@@ -177,14 +185,16 @@ def update_location(location_id):
         if location.start_date and location.end_date and location.end_date < location.start_date:
             return jsonify({'error': 'End date cannot be before start date'}), 400
         
-        # Update coordinates if provided or if city/country changed
+        # Update coordinates if provided or if address/city/country changed
         if 'latitude' in data and 'longitude' in data:
             location.latitude = data['latitude']
             location.longitude = data['longitude']
-        elif 'city' in data or 'country' in data:
+        elif 'address' in data or 'city' in data or 'country' in data:
             # Try to get updated coordinates
             try:
-                coords = get_coordinates(f"{location.city}, {location.country}")
+                # Use address if provided, otherwise use city + country
+                geocode_query = location.address if location.address else f"{location.city}, {location.country}"
+                coords = get_coordinates(geocode_query)
                 if coords:
                     location.latitude, location.longitude = coords
             except Exception:

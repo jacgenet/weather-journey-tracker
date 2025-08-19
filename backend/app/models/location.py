@@ -7,6 +7,7 @@ class Location(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
+    address = db.Column(db.String(500), nullable=True)  # Full address string
     city = db.Column(db.String(100), nullable=False)
     country = db.Column(db.String(100), nullable=False)
     latitude = db.Column(db.Float, nullable=False)
@@ -20,9 +21,10 @@ class Location(db.Model):
     # Relationships
     weather_records = db.relationship('WeatherRecord', backref='location', lazy=True, cascade='all, delete-orphan')
     
-    def __init__(self, user_id, name, city, country, latitude, longitude, start_date=None, end_date=None, notes=None):
+    def __init__(self, user_id, name, address=None, city=None, country=None, latitude=None, longitude=None, start_date=None, end_date=None, notes=None):
         self.user_id = user_id
         self.name = name
+        self.address = address
         self.city = city
         self.country = country
         self.latitude = latitude
@@ -37,6 +39,7 @@ class Location(db.Model):
             'id': self.id,
             'user_id': self.user_id,
             'name': self.name,
+            'address': self.address,
             'city': self.city,
             'country': self.country,
             'latitude': self.latitude,
