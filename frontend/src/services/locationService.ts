@@ -27,24 +27,22 @@ api.interceptors.request.use(
 export interface Location {
   id: number;
   name: string;
+  address?: string;
   city: string;
   country: string;
   latitude: number;
   longitude: number;
   description?: string;
-  start_date?: string;
-  end_date?: string;
 }
 
 export interface CreateLocationData {
   name: string;
+  address?: string;
   city: string;
   country: string;
   latitude: number;
   longitude: number;
   description?: string;
-  start_date?: string;
-  end_date?: string;
 }
 
 export interface UpdateLocationData extends Partial<CreateLocationData> {

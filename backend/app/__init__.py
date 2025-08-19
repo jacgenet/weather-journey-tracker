@@ -53,11 +53,13 @@ def create_app(config_name='development'):
     from .routes.locations import locations_bp
     from .routes.weather import weather_bp
     from .routes.geocoding import geocoding_bp
+    from .routes.people import people_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(locations_bp, url_prefix='/api/locations')
     app.register_blueprint(weather_bp, url_prefix='/api/weather')
     app.register_blueprint(geocoding_bp, url_prefix='/api')
+    app.register_blueprint(people_bp, url_prefix='/api')
     
     # Error handlers
     @app.errorhandler(404)

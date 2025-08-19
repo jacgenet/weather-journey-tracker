@@ -10,6 +10,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Locations from './pages/Locations';
 import Weather from './pages/Weather';
+import People from './pages/People';
 import Profile from './pages/Profile';
 
 const theme = createTheme({
@@ -69,6 +70,7 @@ function App() {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="locations" element={<Locations />} />
               <Route path="weather" element={<Weather />} />
+              <Route path="people" element={<People />} />
               <Route path="profile" element={<Profile />} />
             </Route>
           </Routes>

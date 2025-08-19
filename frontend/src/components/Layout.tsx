@@ -24,6 +24,7 @@ import {
   Dashboard as DashboardIcon,
   LocationOn as LocationIcon,
   WbSunny as WeatherIcon,
+  People as PeopleIcon,
   Person as ProfileIcon,
   Logout as LogoutIcon,
   AccountCircle,
@@ -62,6 +63,7 @@ const Layout: React.FC = () => {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Locations', icon: <LocationIcon />, path: '/locations' },
     { text: 'Weather', icon: <WeatherIcon />, path: '/weather' },
+    { text: 'People', icon: <PeopleIcon />, path: '/people' },
     { text: 'Profile', icon: <ProfileIcon />, path: '/profile' },
   ];
 

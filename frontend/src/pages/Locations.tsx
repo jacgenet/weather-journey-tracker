@@ -31,13 +31,12 @@ const Locations: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
+    address: '',
     city: '',
     country: '',
     latitude: '',
     longitude: '',
     description: '',
-    start_date: '',
-    end_date: '',
   });
   const { user } = useAuth();
 
@@ -63,25 +62,23 @@ const Locations: React.FC = () => {
       setEditingLocation(location);
       setFormData({
         name: location.name,
+        address: location.address || '',
         city: location.city,
         country: location.country,
         latitude: location.latitude.toString(),
         longitude: location.longitude.toString(),
         description: location.description || '',
-        start_date: location.start_date || '',
-        end_date: location.end_date || '',
       });
     } else {
       setEditingLocation(null);
       setFormData({
         name: '',
+        address: '',
         city: '',
         country: '',
         latitude: '',
         longitude: '',
         description: '',
-        start_date: '',
-        end_date: '',
       });
     }
     setOpenDialog(true);
@@ -92,13 +89,12 @@ const Locations: React.FC = () => {
     setEditingLocation(null);
     setFormData({
       name: '',
+      address: '',
       city: '',
       country: '',
       latitude: '',
       longitude: '',
       description: '',
-      start_date: '',
-      end_date: '',
     });
   };
 
@@ -106,20 +102,53 @@ const Locations: React.FC = () => {
     try {
       setLoading(true);
       
+      // Debug: Check JWT token
+      const token = localStorage.getItem('access_token');
+      console.log('JWT Token:', token ? token.substring(0, 50) + '...' : 'No token found');
+      
+      // Validate required fields
+      if (!formData.name.trim()) {
+        setError('Location name is required');
+        setLoading(false);
+        return;
+      }
+      
+      if (!formData.city.trim()) {
+        setError('City is required');
+        setLoading(false);
+        return;
+      }
+      
+      if (!formData.country.trim()) {
+        setError('Country is required');
+        setLoading(false);
+        return;
+      }
+      
+      if (!formData.latitude || !formData.longitude) {
+        setError('Latitude and longitude are required');
+        setLoading(false);
+        return;
+      }
+      
+      // Debug: Log what we're about to send
+      const locationData = {
+        name: formData.name,
+        address: formData.address || undefined,
+        city: formData.city,
+        country: formData.country,
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude),
+        description: formData.description || undefined,
+      };
+      
+      console.log('About to send location data:', locationData);
+      
       if (editingLocation) {
         // Update existing location
         const updatedLocation = await locationService.updateLocation(
           editingLocation.id,
-          {
-            name: formData.name,
-            city: formData.city,
-            country: formData.country,
-            latitude: parseFloat(formData.latitude),
-            longitude: parseFloat(formData.longitude),
-            description: formData.description || undefined,
-            start_date: formData.start_date || undefined,
-            end_date: formData.end_date || undefined,
-          }
+          locationData
         );
         
         setLocations(locations.map(loc =>
@@ -128,24 +157,16 @@ const Locations: React.FC = () => {
         setSuccess('Location updated successfully!');
       } else {
         // Create new location
-        const newLocation = await locationService.createLocation({
-          name: formData.name,
-          city: formData.city,
-          country: formData.country,
-          latitude: parseFloat(formData.latitude),
-          longitude: parseFloat(formData.longitude),
-          description: formData.description || undefined,
-          start_date: formData.start_date || undefined,
-          end_date: formData.end_date || undefined,
-        });
+        const newLocation = await locationService.createLocation(locationData);
         
         setLocations([...locations, newLocation]);
         setSuccess('Location added successfully!');
       }
       
       handleCloseDialog();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save location:', err);
+      console.error('Error details:', err.response?.data);
       setError('Failed to save location. Please try again.');
     } finally {
       setLoading(false);
@@ -166,17 +187,41 @@ const Locations: React.FC = () => {
     }
   };
 
-  const formatDateRange = (startDate?: string, endDate?: string) => {
-    if (!startDate) return '';
-    if (!endDate || startDate === endDate) {
-      return new Date(startDate).toLocaleDateString();
-    }
-    return `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`;
-  };
-
   const handleCloseSnackbar = () => {
     setError(null);
     setSuccess(null);
+  };
+
+  const handleGeocode = async () => {
+    if (!formData.address && !formData.city && !formData.country) {
+      setError('Please enter an address, city, or country to geocode');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const query = formData.address || `${formData.city}, ${formData.country}`;
+      
+      // Call the backend geocoding service
+      const response = await fetch(`http://localhost:5001/api/geocode?query=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      
+      if (data.latitude && data.longitude) {
+        setFormData(prev => ({
+          ...prev,
+          latitude: data.latitude.toString(),
+          longitude: data.longitude.toString()
+        }));
+        setSuccess('Coordinates found! You can adjust them if needed.');
+      } else {
+        setError('Could not find coordinates for this location');
+      }
+    } catch (err) {
+      console.error('Geocoding failed:', err);
+      setError('Failed to get coordinates. Please enter them manually.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -210,6 +255,11 @@ const Locations: React.FC = () => {
                   <Typography variant="h6" component="h2" gutterBottom>
                     {location.name}
                   </Typography>
+                  {location.address && (
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      {location.address}
+                    </Typography>
+                  )}
                   <Typography color="text.secondary" gutterBottom>
                     {location.city}, {location.country}
                   </Typography>
@@ -220,13 +270,6 @@ const Locations: React.FC = () => {
                     <Typography variant="body2" sx={{ mt: 1 }}>
                       {location.description}
                     </Typography>
-                  )}
-                  {(location.start_date || location.end_date) && (
-                    <Chip
-                      label={`Visited: ${formatDateRange(location.start_date, location.end_date)}`}
-                      size="small"
-                      sx={{ mt: 1 }}
-                    />
                   )}
                 </CardContent>
                 <CardActions>
@@ -278,6 +321,27 @@ const Locations: React.FC = () => {
               required
               disabled={loading}
             />
+            <TextField
+              fullWidth
+              label="Address (optional)"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              margin="normal"
+              disabled={loading}
+            />
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={handleGeocode}
+                disabled={loading || (!formData.address && !formData.city && !formData.country)}
+                size="small"
+              >
+                Get Coordinates
+              </Button>
+              <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                Automatically get coordinates from address
+              </Typography>
+            </Box>
             <TextField
               fullWidth
               label="City"
@@ -332,35 +396,6 @@ const Locations: React.FC = () => {
               rows={3}
               disabled={loading}
             />
-            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: 'text.secondary' }}>
-              Visit Date Range (optional)
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Start Date"
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                  margin="normal"
-                  InputLabelProps={{ shrink: true }}
-                  disabled={loading}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="End Date"
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                  margin="normal"
-                  InputLabelProps={{ shrink: true }}
-                  disabled={loading}
-                />
-              </Grid>
-            </Grid>
           </Box>
         </DialogContent>
         <DialogActions>

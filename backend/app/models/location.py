@@ -12,8 +12,6 @@ class Location(db.Model):
     country = db.Column(db.String(100), nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
-    start_date = db.Column(db.Date, nullable=True)
-    end_date = db.Column(db.Date, nullable=True)
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -21,7 +19,7 @@ class Location(db.Model):
     # Relationships
     weather_records = db.relationship('WeatherRecord', backref='location', lazy=True, cascade='all, delete-orphan')
     
-    def __init__(self, user_id, name, address=None, city=None, country=None, latitude=None, longitude=None, start_date=None, end_date=None, notes=None):
+    def __init__(self, user_id, name, address=None, city=None, country=None, latitude=None, longitude=None, notes=None):
         self.user_id = user_id
         self.name = name
         self.address = address
@@ -29,8 +27,6 @@ class Location(db.Model):
         self.country = country
         self.latitude = latitude
         self.longitude = longitude
-        self.start_date = start_date
-        self.end_date = end_date
         self.notes = notes
     
     def to_dict(self):
@@ -44,8 +40,6 @@ class Location(db.Model):
             'country': self.country,
             'latitude': self.latitude,
             'longitude': self.longitude,
-            'start_date': self.start_date.isoformat() if self.start_date else None,
-            'end_date': self.end_date.isoformat() if self.end_date else None,
             'description': self.notes,  # Map notes to description for frontend
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
