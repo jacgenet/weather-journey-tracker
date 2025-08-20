@@ -41,7 +41,7 @@ class LocationDataService {
 
   async getCountries(): Promise<Country[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/location-data/countries`, {
+      const response = await fetch(`${API_BASE_URL}/location-data/countries`, {
         headers: this.getHeaders()
       });
       
@@ -58,7 +58,7 @@ class LocationDataService {
 
   async getStatesByCountry(countryId: number): Promise<State[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/location-data/states/${countryId}`, {
+      const response = await fetch(`${API_BASE_URL}/location-data/states/${countryId}`, {
         headers: this.getHeaders()
       });
       
@@ -75,7 +75,7 @@ class LocationDataService {
 
   async getCitiesByCountry(countryId: number): Promise<City[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/location-data/cities/${countryId}`, {
+      const response = await fetch(`${API_BASE_URL}/location-data/cities/${countryId}`, {
         headers: this.getHeaders()
       });
       
@@ -92,7 +92,7 @@ class LocationDataService {
 
   async getCitiesByState(countryId: number, stateId: number): Promise<City[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/location-data/cities/${countryId}/${stateId}`, {
+      const response = await fetch(`${API_BASE_URL}/location-data/cities/${countryId}/${stateId}`, {
         headers: this.getHeaders()
       });
       
@@ -109,7 +109,7 @@ class LocationDataService {
 
   async searchCities(query: string): Promise<City[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/location-data/search/cities?q=${encodeURIComponent(query)}`, {
+      const response = await fetch(`${API_BASE_URL}/location-data/search/cities?q=${encodeURIComponent(query)}`, {
         headers: this.getHeaders()
       });
       

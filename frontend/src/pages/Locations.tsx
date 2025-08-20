@@ -337,16 +337,38 @@ const Locations: React.FC = () => {
 
   const handleGeocode = async () => {
     if (!formData.address && !formData.city && !formData.country) {
-      setError('Please enter an address, city, or country to geocode');
+      setError('Please enter a street address, city, or country to geocode');
       return;
     }
 
     try {
       setLoading(true);
-      const query = formData.address || `${formData.city}, ${formData.country}`;
+      
+      // Build a comprehensive query using all available location fields
+      let query = '';
+      if (formData.address) {
+        query = formData.address;
+        if (formData.city) query += `, ${formData.city}`;
+        if (selectedStateId && states.length > 0) {
+          const state = states.find(s => s.id === selectedStateId);
+          if (state) query += `, ${state.name}`;
+        }
+        if (formData.country) query += `, ${formData.country}`;
+      } else if (formData.city) {
+        query = formData.city;
+        if (selectedStateId && states.length > 0) {
+          const state = states.find(s => s.id === selectedStateId);
+          if (state) query += `, ${state.name}`;
+        }
+        if (formData.country) query += `, ${formData.country}`;
+      } else {
+        query = formData.country;
+      }
+      
+      console.log('Geocoding query:', query);
       
       // Call the backend geocoding service
-      const response = await fetch(`http://localhost:5001/api/geocode?query=${encodeURIComponent(query)}`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/geocode?query=${encodeURIComponent(query)}`);
       const data = await response.json();
       
       if (data.latitude && data.longitude) {
@@ -466,25 +488,12 @@ const Locations: React.FC = () => {
             />
             <TextField
               fullWidth
-              label="Address (optional)"
+              label="Street Address"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               margin="normal"
               disabled={loading}
             />
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={handleGeocode}
-                disabled={loading || (!formData.address && !formData.city && !formData.country)}
-                size="small"
-              >
-                Get Coordinates
-              </Button>
-              <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
-                Automatically get coordinates from address
-              </Typography>
-            </Box>
             <FormControl fullWidth margin="normal" required>
               <InputLabel>Country</InputLabel>
               <Select
@@ -525,27 +534,6 @@ const Locations: React.FC = () => {
               </FormControl>
             )}
 
-            {selectedStateId && cities.length > 0 && (
-              <FormControl fullWidth margin="normal" required>
-                <InputLabel>City</InputLabel>
-                <Select
-                  value={selectedCityId}
-                  onChange={handleCityChange}
-                  disabled={loading}
-                  label="City"
-                >
-                  <MenuItem value="">
-                    <em>Select a city</em>
-                  </MenuItem>
-                  {cities.map((city) => (
-                    <MenuItem key={city.id} value={city.id}>
-                      {city.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-
             {!selectedCityId && (
               <TextField
                 fullWidth
@@ -558,6 +546,20 @@ const Locations: React.FC = () => {
                 helperText="Enter city name if not available in the dropdown above"
               />
             )}
+
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={handleGeocode}
+                disabled={loading || (!formData.address && !formData.city)}
+                size="small"
+              >
+                Get Coordinates
+              </Button>
+              <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                Automatically get coordinates from street address, city, state, and country
+              </Typography>
+            </Box>
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <TextField
