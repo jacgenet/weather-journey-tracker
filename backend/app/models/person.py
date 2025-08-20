@@ -9,21 +9,24 @@ class Person(db.Model):
     first_name = db.Column(db.String(100), nullable=False)
     last_name = db.Column(db.String(100), nullable=False)
     birth_date = db.Column(db.Date, nullable=True)
-    home_location = db.Column(db.String(200), nullable=True)  # e.g., "San Francisco, CA"
+    home_location = db.Column(db.String(200), nullable=True)  # e.g., "San Francisco, CA" (legacy field)
+    home_location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), nullable=True)  # Reference to locations table
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     user = db.relationship('User', backref='people')
+    home_location_rel = db.relationship('Location', foreign_keys=[home_location_id], backref='home_people')
     visits = db.relationship('PersonLocation', backref='person', cascade='all, delete-orphan')
     
-    def __init__(self, user_id, first_name, last_name, birth_date=None, home_location=None, notes=None):
+    def __init__(self, user_id, first_name, last_name, birth_date=None, home_location=None, home_location_id=None, notes=None):
         self.user_id = user_id
         self.first_name = first_name
         self.last_name = last_name
         self.birth_date = birth_date
         self.home_location = home_location
+        self.home_location_id = home_location_id
         self.notes = notes
     
     @property
@@ -39,7 +42,8 @@ class Person(db.Model):
             'last_name': self.last_name,
             'full_name': self.full_name,
             'birth_date': self.birth_date.isoformat() if self.birth_date else None,
-            'home_location': self.home_location,
+            'home_location': self.home_location,  # Legacy field for backward compatibility
+            'home_location_id': self.home_location_id,
             'notes': self.notes,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

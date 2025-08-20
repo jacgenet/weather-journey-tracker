@@ -81,7 +81,8 @@ def create_person():
             first_name=data['first_name'],
             last_name=data['last_name'],
             birth_date=birth_date,
-            home_location=data.get('home_location'),
+            home_location=data.get('home_location'),  # Legacy field
+            home_location_id=data.get('home_location_id'),  # New field
             notes=data.get('notes')
         )
         
@@ -117,7 +118,9 @@ def update_person(person_id):
         if 'last_name' in data:
             person.last_name = data['last_name']
         if 'home_location' in data:
-            person.home_location = data['home_location']
+            person.home_location = data['home_location']  # Legacy field
+        if 'home_location_id' in data:
+            person.home_location_id = data['home_location_id']  # New field
         if 'notes' in data:
             person.notes = data['notes']
         

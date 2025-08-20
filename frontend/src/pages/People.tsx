@@ -44,6 +44,7 @@ import {
   ExpandMore,
   AddLocation,
   Visibility,
+  Timeline,
 } from '@mui/icons-material';
 import { peopleService, Person as PersonType, CreatePersonData, CreateVisitData, PersonLocation } from '../services/peopleService';
 import { locationService, Location as LocationType } from '../services/locationService';
@@ -63,7 +64,8 @@ const People: React.FC = () => {
     first_name: '',
     last_name: '',
     birth_date: '',
-    home_location: '',
+    home_location: '',  // Legacy field
+    home_location_id: undefined,  // New field
     notes: '',
   });
   const [visitFormData, setVisitFormData] = useState<CreateVisitData>({
@@ -196,7 +198,8 @@ const People: React.FC = () => {
       first_name: person.first_name,
       last_name: person.last_name,
       birth_date: person.birth_date || '',
-      home_location: person.home_location || '',
+      home_location: person.home_location || '',  // Legacy field
+      home_location_id: person.home_location_id,  // New field
       notes: person.notes || '',
     });
     setShowPersonDialog(true);
@@ -296,7 +299,8 @@ const People: React.FC = () => {
       first_name: '',
       last_name: '',
       birth_date: '',
-      home_location: '',
+      home_location: '',  // Legacy field
+      home_location_id: undefined,  // New field
       notes: '',
     });
     setEditingPerson(null);
@@ -325,6 +329,14 @@ const People: React.FC = () => {
     setPersonFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handlePersonSelectChange = (e: SelectChangeEvent<number>) => {
+    const { name, value } = e.target;
+    setPersonFormData(prev => ({
+      ...prev,
+      [name]: value,
     }));
   };
 
@@ -514,6 +526,16 @@ const People: React.FC = () => {
                     }}>
                       <Button
                         fullWidth
+                        variant="contained"
+                        startIcon={<Timeline />}
+                        onClick={() => window.location.href = `/people/${person.id}`}
+                        size="medium"
+                        sx={{ mb: 1 }}
+                      >
+                        View Dashboard
+                      </Button>
+                      <Button
+                        fullWidth
                         variant="outlined"
                         startIcon={<Visibility />}
                         onClick={() => handleViewPerson(person)}
@@ -622,14 +644,24 @@ const People: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Home Location"
-                name="home_location"
-                value={personFormData.home_location}
-                onChange={handlePersonChange}
-                placeholder="e.g., San Francisco, CA"
-              />
+              <FormControl fullWidth>
+                <InputLabel>Home Location</InputLabel>
+                <Select
+                  name="home_location_id"
+                  value={personFormData.home_location_id || ''}
+                  onChange={handlePersonSelectChange}
+                  label="Home Location"
+                >
+                  <MenuItem value="">
+                    <em>Select a home location</em>
+                  </MenuItem>
+                  {locations.map((location) => (
+                    <MenuItem key={location.id} value={location.id}>
+                      {location.name} - {location.city}, {location.country}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12}>
               <TextField

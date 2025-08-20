@@ -31,7 +31,8 @@ export interface Person {
   last_name: string;
   full_name: string;
   birth_date?: string;
-  home_location?: string;
+  home_location?: string;  // Legacy field for backward compatibility
+  home_location_id?: number;  // New field referencing location ID
   notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -66,7 +67,8 @@ export interface CreatePersonData {
   first_name: string;
   last_name: string;
   birth_date?: string;
-  home_location?: string;
+  home_location?: string;  // Legacy field
+  home_location_id?: number;  // New field
   notes?: string;
 }
 

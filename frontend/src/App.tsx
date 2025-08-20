@@ -12,6 +12,7 @@ import Locations from './pages/Locations';
 import Weather from './pages/Weather';
 import People from './pages/People';
 import Profile from './pages/Profile';
+import PersonDashboard from './pages/PersonDashboard';
 
 const theme = createTheme({
   palette: {
@@ -71,6 +72,7 @@ function App() {
               <Route path="locations" element={<Locations />} />
               <Route path="weather" element={<Weather />} />
               <Route path="people" element={<People />} />
+              <Route path="people/:personId" element={<PersonDashboard />} />
               <Route path="profile" element={<Profile />} />
             </Route>
           </Routes>
