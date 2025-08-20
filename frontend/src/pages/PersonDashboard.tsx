@@ -13,6 +13,10 @@ import {
   Paper,
   Button,
   IconButton,
+  FormControl,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
 } from '@mui/material';
 import {
   Person,
@@ -21,7 +25,6 @@ import {
   CalendarToday,
   Home,
   ArrowBack,
-  Thermostat,
   Cloud,
   Visibility,
   Add,
@@ -32,6 +35,7 @@ import { peopleService, Person as PersonType } from '../services/peopleService';
 import { locationService, Location as LocationType } from '../services/locationService';
 import { weatherService } from '../services/weatherService';
 import { countUniqueCountries } from '../utils/countryUtils';
+import { usePreferences, TemperatureUnit } from '../contexts/PreferencesContext';
 
 interface TimelineEvent {
   id: string;
@@ -57,6 +61,11 @@ const PersonDashboard: React.FC = () => {
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { preferences, formatTemperature, setTemperatureUnit } = usePreferences();
+
+  const handleTemperatureUnitChange = (event: SelectChangeEvent<TemperatureUnit>) => {
+    setTemperatureUnit(event.target.value as TemperatureUnit);
+  };
 
   useEffect(() => {
     const fetchPersonData = async () => {
@@ -317,6 +326,23 @@ const PersonDashboard: React.FC = () => {
             </Typography>
           </Paper>
         )}
+
+        {/* Temperature Unit Selector */}
+        <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Temperature Units:
+          </Typography>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <Select
+              value={preferences.temperatureUnit}
+              onChange={handleTemperatureUnitChange}
+              size="small"
+            >
+              <MenuItem value="celsius">°C (Celsius)</MenuItem>
+              <MenuItem value="fahrenheit">°F (Fahrenheit)</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
       </Box>
 
       {/* Statistics Cards */}
@@ -439,12 +465,12 @@ const PersonDashboard: React.FC = () => {
                     {event.weather && (
                       <Chip
                         icon={<WbSunny fontSize="small" />}
-                        label={`${event.weather.temperature}°C`}
+                        label={formatTemperature(event.weather.temperature)}
                         size="small"
                         sx={{ 
-                          bgcolor: 'warning.light',
-                          color: 'warning.dark',
-                          fontWeight: 'bold'
+                          backgroundColor: 'primary.main',
+                          color: 'white',
+                          '& .MuiChip-icon': { color: 'white' }
                         }}
                       />
                     )}
@@ -513,7 +539,7 @@ const PersonDashboard: React.FC = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Box sx={{ textAlign: 'center' }}>
                             <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                              {event.weather.temperature}°C
+                              {formatTemperature(event.weather.temperature)}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
                               Temperature
@@ -571,7 +597,7 @@ const PersonDashboard: React.FC = () => {
               <Grid item xs={12} sm={6} md={3}>
                 <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.50', borderRadius: 2 }}>
                   <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
-                    {Math.max(...timelineEvents.filter(e => e.weather).map(e => e.weather!.temperature))}°C
+                    {formatTemperature(Math.max(...timelineEvents.filter(e => e.weather).map(e => e.weather!.temperature)))}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">Highest Temperature</Typography>
                 </Box>
@@ -580,7 +606,7 @@ const PersonDashboard: React.FC = () => {
               <Grid item xs={12} sm={6} md={3}>
                 <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'info.50', borderRadius: 2 }}>
                   <Typography variant="h4" color="info.main" sx={{ fontWeight: 'bold' }}>
-                    {Math.min(...timelineEvents.filter(e => e.weather).map(e => e.weather!.temperature))}°C
+                    {formatTemperature(Math.min(...timelineEvents.filter(e => e.weather).map(e => e.weather!.temperature)))}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">Lowest Temperature</Typography>
                 </Box>
@@ -589,7 +615,7 @@ const PersonDashboard: React.FC = () => {
               <Grid item xs={12} sm={6} md={3}>
                 <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.50', borderRadius: 2 }}>
                   <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
-                    {Math.round(timelineEvents.filter(e => e.weather).reduce((sum, e) => sum + e.weather!.temperature, 0) / timelineEvents.filter(e => e.weather).length)}°C
+                    {formatTemperature(Math.round(timelineEvents.filter(e => e.weather).reduce((sum, e) => sum + e.weather!.temperature, 0) / timelineEvents.filter(e => e.weather).length))}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">Average Temperature</Typography>
                 </Box>

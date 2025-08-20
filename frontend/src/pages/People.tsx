@@ -5,18 +5,20 @@ import {
   Box,
   Card,
   CardContent,
-  TextField,
+  CardActions,
   Button,
   Grid,
-  IconButton,
+  TextField,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  IconButton,
   Chip,
   Avatar,
   Divider,
   Alert,
+  Snackbar,
   Fab,
   Tooltip,
   List,
@@ -49,6 +51,7 @@ import {
 import { peopleService, Person as PersonType, CreatePersonData, CreateVisitData, PersonLocation } from '../services/peopleService';
 import { locationService, Location as LocationType } from '../services/locationService';
 import { locationDataService, Country, State, City } from '../services/locationDataService';
+import { usePreferences, TemperatureUnit } from '../contexts/PreferencesContext';
 
 const People: React.FC = () => {
   const [people, setPeople] = useState<PersonType[]>([]);
@@ -97,6 +100,12 @@ const People: React.FC = () => {
   const [selectedCountryId, setSelectedCountryId] = useState<number | ''>('');
   const [selectedStateId, setSelectedStateId] = useState<number | ''>('');
   const [selectedCityId, setSelectedCityId] = useState<number | ''>('');
+
+  const { preferences, setTemperatureUnit } = usePreferences();
+
+  const handleTemperatureUnitChange = (event: SelectChangeEvent<TemperatureUnit>) => {
+    setTemperatureUnit(event.target.value as TemperatureUnit);
+  };
 
   useEffect(() => {
     fetchPeople();
@@ -454,7 +463,7 @@ const People: React.FC = () => {
     }));
   };
 
-  const formatDate = (dateString?: string) => {
+  const formatDate = (dateString: string) => {
     if (!dateString) return 'Not set';
     return new Date(dateString).toLocaleDateString();
   };
@@ -482,6 +491,23 @@ const People: React.FC = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           People Tracker
         </Typography>
+
+        {/* Temperature Unit Selector */}
+        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Temperature Units:
+          </Typography>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <Select
+              value={preferences.temperatureUnit}
+              onChange={handleTemperatureUnitChange}
+              size="small"
+            >
+              <MenuItem value="celsius">°C (Celsius)</MenuItem>
+              <MenuItem value="fahrenheit">°F (Fahrenheit)</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
 
         {message && (
           <Alert 

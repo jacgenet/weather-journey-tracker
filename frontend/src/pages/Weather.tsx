@@ -39,6 +39,7 @@ import {
   Compress,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { usePreferences } from '../contexts/PreferencesContext';
 import { weatherService, WeatherResponse, WeatherStatsResponse, DashboardData } from '../services/weatherService';
 import { locationService, Location } from '../services/locationService';
 
@@ -52,6 +53,7 @@ const Weather: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const { user } = useAuth();
+  const { preferences, formatTemperature } = usePreferences();
 
   useEffect(() => {
     fetchLocations();
@@ -161,10 +163,6 @@ const Weather: React.FC = () => {
     }
   };
 
-  const celsiusToFahrenheit = (celsius: number) => {
-    return (celsius * 9/5) + 32;
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
   };
@@ -248,7 +246,7 @@ const Weather: React.FC = () => {
                 <Grid item xs={12} sm={4}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="primary">
-                      {dashboardData.average_temperature ? `${celsiusToFahrenheit(dashboardData.average_temperature).toFixed(1)}°F` : 'N/A'}
+                      {dashboardData.average_temperature ? formatTemperature(dashboardData.average_temperature) : 'N/A'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Average Temperature
@@ -280,7 +278,7 @@ const Weather: React.FC = () => {
                     {getWeatherIcon(weatherData.weather.icon, weatherData.weather.description)}
                     <Box sx={{ ml: 2 }}>
                       <Typography variant="h3" component="div">
-                        {celsiusToFahrenheit(weatherData.weather.temperature).toFixed(1)}°F
+                        {formatTemperature(weatherData.weather.temperature)}
                       </Typography>
                       <Typography variant="h6" color="text.secondary">
                         {weatherData.weather.description || 'Unknown'}
@@ -377,18 +375,18 @@ const Weather: React.FC = () => {
                 <Grid item xs={12} sm={3}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="primary">
-                      {weatherStats.stats.average_temperature ? `${celsiusToFahrenheit(weatherStats.stats.average_temperature).toFixed(1)}°F` : 'N/A'}
+                      {weatherStats.stats.average_temperature ? formatTemperature(weatherStats.stats.average_temperature) : 'N/A'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Average Temperature
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={3}>
-                  <Box sx={{ textAlign: 'center' }}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'info.50', borderRadius: 2 }}>
                     <Typography variant="h4" color="primary">
                       {weatherStats.stats.temperature_range ? 
-                        `${celsiusToFahrenheit(weatherStats.stats.temperature_range.min).toFixed(1)}°F - ${celsiusToFahrenheit(weatherStats.stats.temperature_range.max).toFixed(1)}°F` : 
+                        `${formatTemperature(weatherStats.stats.temperature_range.min)} - ${formatTemperature(weatherStats.stats.temperature_range.max)}` : 
                         'N/A'
                       }
                     </Typography>
@@ -448,7 +446,7 @@ const Weather: React.FC = () => {
                         {new Date(trend.date).toLocaleDateString()}
                       </Typography>
                       <Typography variant="body2" color="primary">
-                        {celsiusToFahrenheit(trend.average_temp).toFixed(1)}°F
+                        {formatTemperature(trend.average_temp)}
                       </Typography>
                     </Box>
                     <LinearProgress
@@ -493,7 +491,7 @@ const Weather: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="primary">
-                            {celsiusToFahrenheit(item.weather.temperature).toFixed(1)}°F
+                            {formatTemperature(item.weather.temperature)}°{preferences.temperatureUnit}
                           </Typography>
                         </TableCell>
                         <TableCell>
