@@ -31,6 +31,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { peopleService, Person as PersonType } from '../services/peopleService';
 import { locationService, Location as LocationType } from '../services/locationService';
 import { weatherService } from '../services/weatherService';
+import { countUniqueCountries } from '../utils/countryUtils';
 
 interface TimelineEvent {
   id: string;
@@ -356,12 +357,12 @@ const PersonDashboard: React.FC = () => {
                 <Typography variant="h6">Countries Visited</Typography>
               </Box>
               <Typography variant="h4" color="primary">
-                {new Set(
+                {countUniqueCountries(
                   person.visits?.map(v => {
                     const loc = locations.find(l => l.id === v.location_id);
                     return loc?.country;
-                  }).filter(Boolean) || []
-                ).size}
+                  }).filter((country): country is string => Boolean(country)) || []
+                )}
               </Typography>
             </CardContent>
           </Card>

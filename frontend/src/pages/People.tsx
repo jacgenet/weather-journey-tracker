@@ -48,6 +48,7 @@ import {
 } from '@mui/icons-material';
 import { peopleService, Person as PersonType, CreatePersonData, CreateVisitData, PersonLocation } from '../services/peopleService';
 import { locationService, Location as LocationType } from '../services/locationService';
+import { locationDataService, Country, State, City } from '../services/locationDataService';
 
 const People: React.FC = () => {
   const [people, setPeople] = useState<PersonType[]>([]);
@@ -87,9 +88,20 @@ const People: React.FC = () => {
     notes: '',
   });
 
+  // Location data for dropdowns
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [states, setStates] = useState<State[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  
+  // Selected location IDs for dropdowns
+  const [selectedCountryId, setSelectedCountryId] = useState<number | ''>('');
+  const [selectedStateId, setSelectedStateId] = useState<number | ''>('');
+  const [selectedCityId, setSelectedCityId] = useState<number | ''>('');
+
   useEffect(() => {
     fetchPeople();
     fetchLocations();
+    fetchCountries();
   }, []);
 
   useEffect(() => {
@@ -126,6 +138,33 @@ const People: React.FC = () => {
       setLocations(data);
     } catch (error) {
       console.error('Failed to fetch locations:', error);
+    }
+  };
+
+  const fetchCountries = async () => {
+    try {
+      const fetchedCountries = await locationDataService.getCountries();
+      setCountries(fetchedCountries);
+    } catch (err) {
+      console.error('Failed to fetch countries:', err);
+    }
+  };
+
+  const fetchStatesByCountry = async (countryId: number) => {
+    try {
+      const fetchedStates = await locationDataService.getStatesByCountry(countryId);
+      setStates(fetchedStates);
+    } catch (err) {
+      console.error('Failed to fetch states:', err);
+    }
+  };
+
+  const fetchCitiesByState = async (countryId: number, stateId: number) => {
+    try {
+      const fetchedCities = await locationDataService.getCitiesByState(countryId, stateId);
+      setCities(fetchedCities);
+    } catch (err) {
+      console.error('Failed to fetch cities:', err);
     }
   };
 
@@ -304,6 +343,11 @@ const People: React.FC = () => {
       notes: '',
     });
     setEditingPerson(null);
+    setSelectedCountryId('');
+    setSelectedStateId('');
+    setSelectedCityId('');
+    setStates([]);
+    setCities([]);
   };
 
   const resetVisitForm = () => {
@@ -338,6 +382,44 @@ const People: React.FC = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleCountryChange = (event: SelectChangeEvent<number | string>) => {
+    const countryId = event.target.value as number;
+    setSelectedCountryId(countryId);
+    setSelectedStateId('');
+    setSelectedCityId('');
+    setStates([]);
+    setCities([]);
+    
+    if (countryId) {
+      fetchStatesByCountry(countryId);
+    }
+  };
+
+  const handleStateChange = (event: SelectChangeEvent<number | string>) => {
+    const stateId = event.target.value as number;
+    setSelectedStateId(stateId);
+    setSelectedCityId('');
+    setCities([]);
+    
+    if (stateId && selectedCountryId) {
+      fetchCitiesByState(selectedCountryId as number, stateId);
+    }
+  };
+
+  const handleCityChange = (event: SelectChangeEvent<number | string>) => {
+    const cityId = event.target.value as number;
+    setSelectedCityId(cityId);
+    
+    if (cityId) {
+      // Auto-populate coordinates if available
+      const city = cities.find(c => c.id === cityId);
+      if (city && city.latitude && city.longitude) {
+        // We could auto-create a location here or just store the city info
+        console.log('City selected with coordinates:', city);
+      }
+    }
   };
 
   const handleVisitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -644,16 +726,95 @@ const People: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Home Location Selection
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12}>
               <FormControl fullWidth>
-                <InputLabel>Home Location</InputLabel>
+                <InputLabel>Country</InputLabel>
+                <Select
+                  value={selectedCountryId}
+                  onChange={handleCountryChange}
+                  disabled={loading}
+                  label="Country"
+                >
+                  <MenuItem value="">
+                    <em>Select a country</em>
+                  </MenuItem>
+                  {countries.map((country) => (
+                    <MenuItem key={country.id} value={country.id}>
+                      {country.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {selectedCountryId && states.length > 0 && (
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>State/Province</InputLabel>
+                  <Select
+                    value={selectedStateId}
+                    onChange={handleStateChange}
+                    disabled={loading}
+                    label="State/Province"
+                  >
+                    <MenuItem value="">
+                      <em>Select a state</em>
+                    </MenuItem>
+                    {states.map((state) => (
+                      <MenuItem key={state.id} value={state.id}>
+                        {state.name} {state.abbreviation ? `(${state.abbreviation})` : ''}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+
+            {selectedStateId && cities.length > 0 && (
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>City</InputLabel>
+                  <Select
+                    value={selectedCityId}
+                    onChange={handleCityChange}
+                    disabled={loading}
+                    label="City"
+                  >
+                    <MenuItem value="">
+                      <em>Select a city</em>
+                    </MenuItem>
+                    {cities.map((city) => (
+                      <MenuItem key={city.id} value={city.id}>
+                        {city.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+
+            <Grid item xs={12}>
+              <Typography variant="caption" color="text.secondary">
+                Or select from existing locations:
+              </Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Existing Location (Optional)</InputLabel>
                 <Select
                   name="home_location_id"
                   value={personFormData.home_location_id || ''}
                   onChange={handlePersonSelectChange}
-                  label="Home Location"
+                  label="Existing Location (Optional)"
                 >
                   <MenuItem value="">
-                    <em>Select a home location</em>
+                    <em>Select an existing location</em>
                   </MenuItem>
                   {locations.map((location) => (
                     <MenuItem key={location.id} value={location.id}>

@@ -17,10 +17,16 @@ import {
   Chip,
   Alert,
   Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { locationService, Location, CreateLocationData } from '../services/locationService';
+import { locationDataService, Country, State, City } from '../services/locationDataService';
 
 const Locations: React.FC = () => {
   const [locations, setLocations] = useState<Location[]>([]);
@@ -38,10 +44,22 @@ const Locations: React.FC = () => {
     longitude: '',
     description: '',
   });
+  
+  // Dropdown data state
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [states, setStates] = useState<State[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  
+  // Selected IDs for dropdowns
+  const [selectedCountryId, setSelectedCountryId] = useState<number | ''>('');
+  const [selectedStateId, setSelectedStateId] = useState<number | ''>('');
+  const [selectedCityId, setSelectedCityId] = useState<number | ''>('');
+  
   const { user } = useAuth();
 
   useEffect(() => {
     fetchLocations();
+    fetchCountries();
   }, []);
 
   const fetchLocations = async () => {
@@ -57,6 +75,36 @@ const Locations: React.FC = () => {
     }
   };
 
+  const fetchCountries = async () => {
+    try {
+      const fetchedCountries = await locationDataService.getCountries();
+      setCountries(fetchedCountries);
+    } catch (err) {
+      console.error('Failed to fetch countries:', err);
+      setError('Failed to load countries');
+    }
+  };
+
+  const fetchStatesByCountry = async (countryId: number) => {
+    try {
+      const fetchedStates = await locationDataService.getStatesByCountry(countryId);
+      setStates(fetchedStates);
+    } catch (err) {
+      console.error('Failed to fetch states:', err);
+      setError('Failed to load states');
+    }
+  };
+
+  const fetchCitiesByState = async (countryId: number, stateId: number) => {
+    try {
+      const fetchedCities = await locationDataService.getCitiesByState(countryId, stateId);
+      setCities(fetchedCities);
+    } catch (err) {
+      console.error('Failed to fetch cities:', err);
+      setError('Failed to load cities');
+    }
+  };
+
   const handleOpenDialog = (location?: Location) => {
     if (location) {
       setEditingLocation(location);
@@ -69,6 +117,30 @@ const Locations: React.FC = () => {
         longitude: location.longitude.toString(),
         description: location.description || '',
       });
+      
+      // Try to find and set the selected country, state, and city IDs
+      const country = countries.find(c => c.name === location.country);
+      if (country) {
+        setSelectedCountryId(country.id);
+        fetchStatesByCountry(country.id);
+        
+        // Try to find state if we have states loaded
+        if (states.length > 0) {
+          const state = states.find(s => s.name === location.city);
+          if (state) {
+            setSelectedStateId(state.id);
+            fetchCitiesByState(country.id, state.id);
+            
+            // Try to find city if we have cities loaded
+            if (cities.length > 0) {
+              const city = cities.find(c => c.name === location.city);
+              if (city) {
+                setSelectedCityId(city.id);
+              }
+            }
+          }
+        }
+      }
     } else {
       setEditingLocation(null);
       setFormData({
@@ -80,6 +152,11 @@ const Locations: React.FC = () => {
         longitude: '',
         description: '',
       });
+      setSelectedCountryId('');
+      setSelectedStateId('');
+      setSelectedCityId('');
+      setStates([]);
+      setCities([]);
     }
     setOpenDialog(true);
   };
@@ -96,6 +173,11 @@ const Locations: React.FC = () => {
       longitude: '',
       description: '',
     });
+    setSelectedCountryId('');
+    setSelectedStateId('');
+    setSelectedCityId('');
+    setStates([]);
+    setCities([]);
   };
 
   const handleSubmit = async () => {
@@ -190,6 +272,67 @@ const Locations: React.FC = () => {
   const handleCloseSnackbar = () => {
     setError(null);
     setSuccess(null);
+  };
+
+  const handleCountryChange = (event: SelectChangeEvent<number | string>) => {
+    const countryId = event.target.value as number;
+    setSelectedCountryId(countryId);
+    setSelectedStateId('');
+    setSelectedCityId('');
+    setStates([]);
+    setCities([]);
+    
+    if (countryId) {
+      fetchStatesByCountry(countryId);
+      // Update form data with country name
+      const country = countries.find(c => c.id === countryId);
+      if (country) {
+        setFormData(prev => ({ ...prev, country: country.name }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, country: '' }));
+    }
+  };
+
+  const handleStateChange = (event: SelectChangeEvent<number | string>) => {
+    const stateId = event.target.value as number;
+    setSelectedStateId(stateId);
+    setSelectedCityId('');
+    setCities([]);
+    
+    if (stateId && selectedCountryId) {
+      fetchCitiesByState(selectedCountryId as number, stateId);
+      // Update form data with state name
+      const state = states.find(s => s.id === stateId);
+      if (state) {
+        setFormData(prev => ({ ...prev, city: state.name }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, city: '' }));
+    }
+  };
+
+  const handleCityChange = (event: SelectChangeEvent<number | string>) => {
+    const cityId = event.target.value as number;
+    setSelectedCityId(cityId);
+    
+    if (cityId) {
+      // Update form data with city name and auto-populate coordinates
+      const city = cities.find(c => c.id === cityId);
+      if (city) {
+        setFormData(prev => ({ 
+          ...prev, 
+          city: city.name,
+          latitude: city.latitude?.toString() || '',
+          longitude: city.longitude?.toString() || ''
+        }));
+        if (city.latitude && city.longitude) {
+          setSuccess('Coordinates auto-populated from city data!');
+        }
+      }
+    } else {
+      setFormData(prev => ({ ...prev, city: '' }));
+    }
   };
 
   const handleGeocode = async () => {
@@ -342,24 +485,79 @@ const Locations: React.FC = () => {
                 Automatically get coordinates from address
               </Typography>
             </Box>
-            <TextField
-              fullWidth
-              label="City"
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              margin="normal"
-              required
-              disabled={loading}
-            />
-            <TextField
-              fullWidth
-              label="Country"
-              value={formData.country}
-              onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-              margin="normal"
-              required
-              disabled={loading}
-            />
+            <FormControl fullWidth margin="normal" required>
+              <InputLabel>Country</InputLabel>
+              <Select
+                value={selectedCountryId}
+                onChange={handleCountryChange}
+                disabled={loading}
+                label="Country"
+              >
+                <MenuItem value="">
+                  <em>Select a country</em>
+                </MenuItem>
+                {countries.map((country) => (
+                  <MenuItem key={country.id} value={country.id}>
+                    {country.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {selectedCountryId && states.length > 0 && (
+              <FormControl fullWidth margin="normal">
+                <InputLabel>State/Province</InputLabel>
+                <Select
+                  value={selectedStateId}
+                  onChange={handleStateChange}
+                  disabled={loading}
+                  label="State/Province"
+                >
+                  <MenuItem value="">
+                    <em>Select a state</em>
+                  </MenuItem>
+                  {states.map((state) => (
+                    <MenuItem key={state.id} value={state.id}>
+                      {state.name} {state.abbreviation ? `(${state.abbreviation})` : ''}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
+            {selectedStateId && cities.length > 0 && (
+              <FormControl fullWidth margin="normal" required>
+                <InputLabel>City</InputLabel>
+                <Select
+                  value={selectedCityId}
+                  onChange={handleCityChange}
+                  disabled={loading}
+                  label="City"
+                >
+                  <MenuItem value="">
+                    <em>Select a city</em>
+                  </MenuItem>
+                  {cities.map((city) => (
+                    <MenuItem key={city.id} value={city.id}>
+                      {city.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
+            {!selectedCityId && (
+              <TextField
+                fullWidth
+                label="City (if not in dropdown)"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                margin="normal"
+                required
+                disabled={loading}
+                helperText="Enter city name if not available in the dropdown above"
+              />
+            )}
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <TextField

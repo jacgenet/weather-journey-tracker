@@ -42,6 +42,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { peopleService } from '../services/peopleService';
 import { locationService } from '../services/locationService';
 import { weatherService } from '../services/weatherService';
+import { normalizeCountryNames, countUniqueCountries } from '../utils/countryUtils';
 
 ChartJS.register(
   CategoryScale,
@@ -114,13 +115,26 @@ const Dashboard: React.FC = () => {
       const peopleWithVisits = people.filter(person => (person.visit_count || 0) > 0).length;
       const averageVisitsPerPerson = people.length > 0 ? (totalVisits / people.length).toFixed(1) : 0;
       
-      // Get unique countries and cities
-      const countries = new Set(locations.map(loc => loc.country));
-      const cities = new Set(locations.map(loc => `${loc.city}, ${loc.country}`));
+      // Get unique countries and cities with normalization
+      const countryNames = locations.map(loc => loc.country).filter(Boolean);
+      const normalizedCountries = normalizeCountryNames(countryNames);
+      const countries = new Set(normalizedCountries);
+      const cities = new Set(locations.map(loc => `${loc.city}, ${normalizeCountryNames([loc.country])[0]}`));
       
-      // Find most visited country
+      // Debug logging for country normalization
+      console.log('🔍 Country Normalization Debug:');
+      console.log('Original countries:', countryNames);
+      console.log('Normalized countries:', normalizedCountries);
+      console.log('Unique normalized countries:', Array.from(countries));
+      console.log('Country count before normalization:', new Set(countryNames).size);
+      console.log('Country count after normalization:', countries.size);
+      
+      // Find most visited country (using normalized names)
       const countryCounts = locations.reduce((acc, loc) => {
-        acc[loc.country] = (acc[loc.country] || 0) + 1;
+        const normalizedCountry = normalizeCountryNames([loc.country])[0];
+        if (normalizedCountry) {
+          acc[normalizedCountry] = (acc[normalizedCountry] || 0) + 1;
+        }
         return acc;
       }, {} as Record<string, number>);
       const mostVisitedCountry = Object.entries(countryCounts)
