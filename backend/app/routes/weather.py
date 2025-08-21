@@ -238,3 +238,84 @@ def refresh_weather_data(location_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Failed to refresh weather data'}), 500 
+
+@weather_bp.route('/period-stats/<int:location_id>', methods=['GET'])
+@jwt_required()
+def get_weather_period_stats(location_id):
+    """Get weather statistics for a specific time period at a location"""
+    current_user_id = get_jwt_identity()
+    
+    try:
+        # Get query parameters for date range
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+        
+        if not start_date_str or not end_date_str:
+            return jsonify({'error': 'start_date and end_date parameters are required'}), 400
+        
+        # Parse dates
+        try:
+            start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
+            end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+        
+        # Verify location belongs to user
+        location = Location.query.filter_by(id=location_id, user_id=current_user_id).first()
+        if not location:
+            return jsonify({'error': 'Location not found'}), 404
+        
+        # Get weather records for the specified period
+        weather_records = WeatherRecord.query.filter(
+            WeatherRecord.location_id == location_id,
+            WeatherRecord.recorded_at >= start_date,
+            WeatherRecord.recorded_at <= end_date
+        ).all()
+        
+        if not weather_records:
+            return jsonify({
+                'location': location.to_dict(),
+                'period_stats': {
+                    'start_date': start_date.isoformat(),
+                    'end_date': end_date.isoformat(),
+                    'total_records': 0,
+                    'average_temperature': None,
+                    'highest_temperature': None,
+                    'lowest_temperature': None,
+                    'temperature_range': None,
+                    'most_common_conditions': []
+                }
+            }), 200
+        
+        # Calculate statistics for the period
+        temperatures = [record.temperature for record in weather_records]
+        descriptions = [record.description for record in weather_records if record.description]
+        
+        period_stats = {
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat(),
+            'total_records': len(weather_records),
+            'average_temperature': round(statistics.mean(temperatures), 1),
+            'highest_temperature': round(max(temperatures), 1),
+            'lowest_temperature': round(min(temperatures), 1),
+            'temperature_range': {
+                'min': round(min(temperatures), 1),
+                'max': round(max(temperatures), 1)
+            },
+            'most_common_conditions': []
+        }
+        
+        # Find most common weather conditions
+        if descriptions:
+            from collections import Counter
+            condition_counts = Counter(descriptions)
+            period_stats['most_common_conditions'] = condition_counts.most_common(3)
+        
+        return jsonify({
+            'location': location.to_dict(),
+            'period_stats': period_stats
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in get_weather_period_stats: {e}")
+        return jsonify({'error': 'Failed to fetch period weather statistics'}), 500 

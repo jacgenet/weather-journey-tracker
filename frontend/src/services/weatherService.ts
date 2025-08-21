@@ -73,6 +73,25 @@ export interface WeatherStatsResponse {
   stats: WeatherStats;
 }
 
+export interface WeatherPeriodStats {
+  start_date: string;
+  end_date: string;
+  total_records: number;
+  average_temperature: number;
+  highest_temperature: number;
+  lowest_temperature: number;
+  temperature_range: {
+    min: number;
+    max: number;
+  };
+  most_common_conditions: [string, number][];
+}
+
+export interface WeatherPeriodStatsResponse {
+  location: Location;
+  period_stats: WeatherPeriodStats;
+}
+
 export interface DashboardData {
   total_locations: number;
   average_temperature: number;
@@ -99,6 +118,11 @@ export const weatherService = {
 
   async getWeatherStats(locationId: number): Promise<WeatherStatsResponse> {
     const response = await api.get(`/weather/stats/${locationId}`);
+    return response.data;
+  },
+
+  async getWeatherPeriodStats(locationId: number, startDate: string, endDate: string): Promise<WeatherPeriodStatsResponse> {
+    const response = await api.get(`/weather/period-stats/${locationId}?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`);
     return response.data;
   },
 

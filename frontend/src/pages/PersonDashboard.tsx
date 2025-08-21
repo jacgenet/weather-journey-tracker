@@ -29,6 +29,7 @@ import {
   Visibility,
   Add,
   Edit,
+  Thermostat,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { peopleService, Person as PersonType } from '../services/peopleService';
@@ -49,6 +50,12 @@ interface TimelineEvent {
     description: string;
     humidity: number;
   };
+  periodWeatherStats?: {
+    average_temperature: number;
+    highest_temperature: number;
+    lowest_temperature: number;
+    total_records: number;
+  };
   icon: React.ReactElement;
   color: 'primary' | 'secondary' | 'success' | 'info' | 'warning';
 }
@@ -62,6 +69,13 @@ const PersonDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { preferences, formatTemperature, setTemperatureUnit } = usePreferences();
+
+  // Format dates consistently using explicit date parsing
+  const formatDateConsistent = (dateString: string) => {
+    // Parse ISO date string and ensure consistent formatting
+    const date = new Date(dateString + 'T00:00:00'); // Add time to avoid timezone issues
+    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+  };
 
   const handleTemperatureUnitChange = (event: SelectChangeEvent<TemperatureUnit>) => {
     setTemperatureUnit(event.target.value as TemperatureUnit);
@@ -84,139 +98,164 @@ const PersonDashboard: React.FC = () => {
         setPerson(personData);
         setLocations(allLocations);
 
+        // Create timeline events
         const events: TimelineEvent[] = [];
-
+        
         // Add birth event
         if (personData.birth_date) {
-          events.push({
-            id: 'birth',
-            date: new Date(personData.birth_date),
-            type: 'birth',
-            title: 'Born',
-            description: `${personData.first_name} ${personData.last_name} was born`,
-            icon: React.createElement(Person),
-            color: 'success'
-          });
+          const birthDate = new Date(personData.birth_date);
+          const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
+          if (homeLocation) {
+            events.push({
+              id: 'birth',
+              date: birthDate,
+              type: 'birth',
+              title: 'Started at Home',
+              description: `Started living at: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} - ${formatDateConsistent(personData.birth_date)}`,
+              location: homeLocation,
+              icon: React.createElement(Home),
+              color: 'primary'
+            });
+          }
         }
 
-                 // Add initial home event
-         if (personData.home_location_id) {
-           console.log('🏠 Looking for home location by ID:', personData.home_location_id);
-           const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
-           console.log('🏠 Found home location:', homeLocation);
-           if (homeLocation) {
-             events.push({
-               id: 'home-initial',
-               date: new Date(personData.birth_date || new Date()),
-               type: 'home',
-               title: 'Home',
-               description: `Home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country}`,
-               location: homeLocation,
-               icon: React.createElement(Home),
-               color: 'primary'
-             });
-             console.log('🏠 Added initial home event');
-           } else {
-             console.log('❌ Home location not found in locations array');
-           }
-         }
+        // Add visit events and home events between visits
+        const sortedVisits = personData.visits?.sort((a, b) => 
+          new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+        ) || [];
 
-        // Add visit events and fill gaps with home events
-        if (personData.visits && personData.visits.length > 0) {
-          console.log('🎯 Processing visits:', personData.visits);
-          
-          const sortedVisits = [...personData.visits].sort((a, b) => 
-            new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-          );
-
-                     sortedVisits.forEach((visit, index) => {
-             const visitLocation = allLocations.find(loc => loc.id === visit.location_id);
-             if (visitLocation) {
-               // Add home event before this visit (if not the first visit)
-               if (index > 0) {
-                 const previousVisit = sortedVisits[index - 1];
-                 const previousVisitEnd = new Date(previousVisit.end_date || previousVisit.start_date);
-                 const currentVisitStart = new Date(visit.start_date);
-                 
-                 console.log(`🔄 Visit ${index}: Previous visit ended ${previousVisitEnd.toISOString()}, current visit starts ${currentVisitStart.toISOString()}`);
-                 
-                 if (previousVisitEnd < currentVisitStart) {
-                   console.log('🏠 Gap detected, adding returned home event');
-                   const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
-                   if (homeLocation) {
-                     events.push({
-                       id: `home-${previousVisit.id}-${visit.id}`,
-                       date: previousVisitEnd,
-                       type: 'home',
-                       title: 'Home',
-                       description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country}`,
-                       location: homeLocation,
-                       icon: React.createElement(Home),
-                       color: 'primary'
-                     });
-                     console.log('🏠 Added returned home event');
-                   } else {
-                     console.log('❌ Home location not found for gap-filling');
-                   }
-                 } else {
-                   console.log('⏭️ No gap between visits, skipping home event');
-                 }
-               }
-
-              // Add the visit event
-              events.push({
-                id: `visit-${visit.id}`,
-                date: new Date(visit.start_date),
-                type: 'visit',
-                title: `Visit to ${visitLocation.name}`,
-                description: `${visitLocation.city}, ${visitLocation.country}${visit.notes ? ` - ${visit.notes}` : ''}`,
-                location: visitLocation,
-                icon: React.createElement(LocationOn),
-                color: 'info'
-              });
+        sortedVisits.forEach((visit, index) => {
+          const visitLocation = allLocations.find(loc => loc.id === visit.location_id);
+          if (visitLocation) {
+            console.log(`📅 Processing visit ${visit.id}:`, {
+              start_date: visit.start_date,
+              end_date: visit.end_date,
+              parsed_start: new Date(visit.start_date),
+              parsed_end: visit.end_date ? new Date(visit.end_date) : 'No end date'
+            });
+            
+            // Add home event before this visit (if not the first visit)
+            if (index > 0) {
+              const previousVisit = sortedVisits[index - 1];
+              const previousVisitEnd = new Date(previousVisit.end_date || previousVisit.start_date);
+              const currentVisitStart = new Date(visit.start_date);
+              
+              console.log(`🔄 Visit ${index}: Previous visit ended ${previousVisitEnd.toISOString()}, current visit starts ${currentVisitStart.toISOString()}`);
+              
+              if (previousVisitEnd < currentVisitStart) {
+                console.log('🏠 Gap detected, adding returned home event');
+                const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
+                if (homeLocation) {
+                  events.push({
+                    id: `home-${previousVisit.id}-${visit.id}`,
+                    date: previousVisitEnd,
+                    type: 'home',
+                    title: 'Returned Home',
+                    description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} - ${formatDateConsistent(previousVisit.end_date || previousVisit.start_date)}`,
+                    location: homeLocation,
+                    icon: React.createElement(Home),
+                    color: 'primary'
+                  });
+                  console.log('🏠 Added returned home event');
+                } else {
+                  console.log('❌ Home location not found for gap-filling');
+                }
+              } else {
+                console.log('⏭️ No gap between visits, skipping home event');
+              }
             }
-          });
 
-                     // Add final home event after the last visit
-           const lastVisit = sortedVisits[sortedVisits.length - 1];
-           if (lastVisit) {
-             const lastVisitEnd = new Date(lastVisit.end_date || lastVisit.start_date);
-             const today = new Date();
-             
-             console.log(`🏁 Last visit ended: ${lastVisitEnd.toISOString()}, today: ${today.toISOString()}`);
-             
-             if (lastVisitEnd < today) {
-               console.log('🏠 Adding final home event');
-               const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
-               if (homeLocation) {
-                 events.push({
-                   id: `home-final-${lastVisit.id}`,
-                   date: lastVisitEnd,
-                   type: 'home',
-                   title: 'Home',
-                   description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country}`,
-                   location: homeLocation,
-                   icon: React.createElement(Home),
-                   color: 'primary'
-                 });
-                 console.log('🏠 Added final home event');
-               } else {
-                 console.log('❌ Home location not found for final event');
-               }
-             } else {
-               console.log('⏭️ Last visit is ongoing, no final home event needed');
-             }
-           }
+           // Add the visit event
+           const visitStartDate = new Date(visit.start_date);
+           const visitEndDate = visit.end_date ? new Date(visit.end_date) : null;
+           
+           // Log the raw date strings and parsed dates for debugging
+           console.log(`🔍 Raw dates for ${visitLocation.name}:`, {
+             start_date_raw: visit.start_date,
+             end_date_raw: visit.end_date,
+             start_date_type: typeof visit.start_date,
+             end_date_type: typeof visit.end_date,
+             start_date_iso: visit.start_date + 'T00:00:00',
+             end_date_iso: visit.end_date ? visit.end_date + 'T00:00:00' : 'No end date'
+           });
+           
+           // Test the date parsing
+           const testStartDate = new Date(visit.start_date + 'T00:00:00');
+           const testEndDate = visit.end_date ? new Date(visit.end_date + 'T00:00:00') : null;
+           console.log(`🧪 Test date parsing for ${visitLocation.name}:`, {
+             start_iso: visit.start_date + 'T00:00:00',
+             start_parsed: testStartDate,
+             start_formatted: formatDateConsistent(visit.start_date),
+             end_iso: visit.end_date ? visit.end_date + 'T00:00:00' : 'No end date',
+             end_parsed: testEndDate,
+             end_formatted: visit.end_date ? formatDateConsistent(visit.end_date) : 'No end date'
+           });
+           
+           console.log(`🎯 Creating visit event for ${visitLocation.name}:`, {
+              original_start: visit.start_date,
+              original_end: visit.end_date,
+              parsed_start: visitStartDate,
+              parsed_end: visitEndDate,
+              start_formatted: formatDateConsistent(visit.start_date),
+              end_formatted: visit.end_date ? formatDateConsistent(visit.end_date) : 'No end date'
+            });
+           
+           events.push({
+             id: `visit-${visit.id}`,
+             date: visitStartDate,
+             type: 'visit',
+             title: `Visit to ${visitLocation.name}`,
+             description: `${visitLocation.city}, ${visitLocation.country} - ${formatDateConsistent(visit.start_date)}${visit.end_date && visit.end_date !== visit.start_date ? ` to ${formatDateConsistent(visit.end_date)}` : ''}${visit.notes ? ` - ${visit.notes}` : ''}`,
+             location: visitLocation,
+             icon: React.createElement(LocationOn),
+             color: 'info'
+           });
+         }
+       });
+
+                // Add final home event after the last visit
+        const lastVisit = sortedVisits[sortedVisits.length - 1];
+        if (lastVisit) {
+          const lastVisitEnd = new Date(lastVisit.end_date || lastVisit.start_date);
+          const today = new Date();
+          
+          console.log(`🏁 Last visit ended: ${lastVisitEnd.toISOString()}, today: ${today.toISOString()}`);
+          
+          if (lastVisitEnd < today) {
+            console.log('🏠 Adding final home event');
+            const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
+            if (homeLocation) {
+              events.push({
+                id: `home-final-${lastVisit.id}`,
+                date: lastVisitEnd,
+                type: 'home',
+                title: 'Currently at Home',
+                description: `Currently at home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} - since ${formatDateConsistent(lastVisit.end_date || lastVisit.start_date)}`,
+                location: homeLocation,
+                icon: React.createElement(Home),
+                color: 'primary'
+              });
+              console.log('🏠 Added final home event');
+            } else {
+              console.log('❌ Home location not found for final event');
+            }
+          } else {
+            console.log('⏭️ Last visit is ongoing, no final home event needed');
+          }
         }
 
         // Sort events by date
         events.sort((a, b) => a.date.getTime() - b.date.getTime());
         
         console.log('📅 Final timeline events:', events);
-        setTimelineEvents(events);
-
+        
         // Fetch weather data for locations
-        await fetchWeatherData(events);
+        const eventsWithWeather = await fetchWeatherData(events);
+        
+        // Fetch period weather statistics for timeline events
+        const eventsWithPeriodStats = await fetchPeriodWeatherStats(eventsWithWeather);
+        
+        setTimelineEvents(eventsWithPeriodStats);
 
       } catch (err) {
         console.error('Failed to fetch person data:', err);
@@ -255,8 +294,95 @@ const PersonDashboard: React.FC = () => {
       );
 
       setTimelineEvents(eventsWithWeather);
+      return eventsWithWeather; // Return the array with weather data
     } catch (err) {
       console.error('Failed to fetch weather data:', err);
+      return events; // Return the original events array if weather fetching fails
+    }
+  };
+
+  const fetchPeriodWeatherStats = async (events: TimelineEvent[]) => {
+    try {
+      console.log('🔍 Starting fetchPeriodWeatherStats with events:', events);
+      
+      // IMPORTANT: Weather API date ranges should match the dates displayed in the timeline UI
+      // This ensures weather averages are calculated for the exact same period users see
+      
+      const eventsWithPeriodStats = await Promise.all(
+        events.map(async (event) => {
+          if (event.location && event.type !== 'birth') {
+            try {
+              console.log(`🌤️ Processing event: ${event.title} at location: ${event.location.name}`);
+              
+              // For home events, we need to determine the time period
+              let startDate: string;
+              let endDate: string;
+              
+              if (event.type === 'home') {
+                // For home events, use a more realistic period that includes actual weather data
+                const eventDate = new Date(event.date);
+                // Use a 30-day period centered on the event date to match realistic expectations
+                startDate = new Date(eventDate.getTime() - 15 * 24 * 60 * 60 * 1000).toISOString(); // 15 days before
+                endDate = new Date(eventDate.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString(); // 15 days after
+                console.log(`🏠 Home event - using centered 30-day period: ${startDate} to ${endDate}`);
+              } else if (event.type === 'visit' && person && person.visits) {
+                // For visit events, find the actual visit data to get start/end dates
+                const visit = person.visits.find(v => v.location_id === event.location!.id);
+                if (visit) {
+                  startDate = new Date(visit.start_date).toISOString();
+                  // Use EXACT visit dates - no buffer to match timeline display
+                  const visitEnd = visit.end_date ? new Date(visit.end_date) : new Date(visit.start_date);
+                  endDate = visitEnd.toISOString();
+                  console.log(`🎯 Visit event - using EXACT visit dates: ${startDate} to ${endDate}`);
+                } else {
+                  // Fallback to default period if visit not found
+                  const eventDate = new Date(event.date);
+                  startDate = new Date(eventDate.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
+                  endDate = new Date(eventDate.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+                  console.log(`⚠️ Visit event - fallback to default period: ${startDate} to ${endDate}`);
+                }
+              } else {
+                // Fallback to default period
+                const eventDate = new Date(event.date);
+                startDate = new Date(eventDate.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
+                endDate = new Date(eventDate.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+                console.log(`⚠️ Unknown event type - fallback to default period: ${startDate} to ${endDate}`);
+              }
+              
+              console.log(`📡 Calling API for location ${event.location.id}: ${startDate} to ${endDate}`);
+              
+              const periodStats = await weatherService.getWeatherPeriodStats(
+                event.location.id,
+                startDate,
+                endDate
+              );
+              
+              console.log(`✅ Got period stats for ${event.location.name}:`, periodStats.period_stats);
+              
+              return {
+                ...event,
+                periodWeatherStats: {
+                  average_temperature: periodStats.period_stats.average_temperature,
+                  highest_temperature: periodStats.period_stats.highest_temperature,
+                  lowest_temperature: periodStats.period_stats.lowest_temperature,
+                  total_records: periodStats.period_stats.total_records
+                }
+              };
+            } catch (statsErr) {
+              console.warn(`❌ Could not fetch period stats for ${event.location.name}:`, statsErr);
+              return event;
+            }
+          }
+          return event;
+        })
+      );
+      
+      console.log('🎉 Final events with period stats:', eventsWithPeriodStats);
+      setTimelineEvents(eventsWithPeriodStats);
+      return eventsWithPeriodStats;
+    } catch (err) {
+      console.error('❌ Failed to fetch period weather stats:', err);
+      return events;
     }
   };
 
@@ -454,7 +580,7 @@ const PersonDashboard: React.FC = () => {
                       label={event.type === 'home' && event.id === 'home-initial' ? 'Started at Home' : 
                              event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
                              event.type === 'home' ? 'Returned Home' :
-                             formatDate(event.date)}
+                             formatDateConsistent(event.date.toISOString().split('T')[0])}
                       size="small"
                       sx={{ 
                         bgcolor: event.color + '.light',
@@ -473,6 +599,42 @@ const PersonDashboard: React.FC = () => {
                           '& .MuiChip-icon': { color: 'white' }
                         }}
                       />
+                    )}
+
+                    {/* Period Weather Statistics Chips */}
+                    {event.periodWeatherStats && event.periodWeatherStats.total_records > 0 && (
+                      <>
+                        <Chip
+                          icon={<Thermostat fontSize="small" />}
+                          label={`Avg: ${formatTemperature(event.periodWeatherStats.average_temperature)}`}
+                          size="small"
+                          sx={{ 
+                            backgroundColor: 'success.main',
+                            color: 'white',
+                            '& .MuiChip-icon': { color: 'white' }
+                          }}
+                        />
+                        <Chip
+                          icon={<WbSunny fontSize="small" />}
+                          label={`High: ${formatTemperature(event.periodWeatherStats.highest_temperature)}`}
+                          size="small"
+                          sx={{ 
+                            backgroundColor: 'warning.main',
+                            color: 'white',
+                            '& .MuiChip-icon': { color: 'white' }
+                          }}
+                        />
+                        <Chip
+                          icon={<Cloud fontSize="small" />}
+                          label={`Low: ${formatTemperature(event.periodWeatherStats.lowest_temperature)}`}
+                          size="small"
+                          sx={{ 
+                            backgroundColor: 'info.main',
+                            color: 'white',
+                            '& .MuiChip-icon': { color: 'white' }
+                          }}
+                        />
+                      </>
                     )}
                   </Box>
                   <Box sx={{ flexGrow: 1 }}>
@@ -562,6 +724,63 @@ const PersonDashboard: React.FC = () => {
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
                               Humidity
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    )}
+                    
+                    {/* Period Weather Statistics */}
+                    {event.periodWeatherStats && event.periodWeatherStats.total_records > 0 && (
+                      <Box sx={{ 
+                        mt: 2, 
+                        p: 1.5, 
+                        bgcolor: 'success.50', 
+                        borderRadius: 2, 
+                        border: '1px solid',
+                        borderColor: 'success.200'
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 'bold' }}>
+                            Period Weather Statistics
+                          </Typography>
+                          <Thermostat color="success" />
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
+                              {formatTemperature(event.periodWeatherStats.average_temperature)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Average
+                            </Typography>
+                          </Box>
+                          
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="h6" color="warning.main" sx={{ fontWeight: 'bold' }}>
+                              {formatTemperature(event.periodWeatherStats.highest_temperature)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              High
+                            </Typography>
+                          </Box>
+                          
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="h6" color="info.main" sx={{ fontWeight: 'bold' }}>
+                              {formatTemperature(event.periodWeatherStats.lowest_temperature)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Low
+                            </Typography>
+                          </Box>
+                          
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="body2" color="text.secondary">
+                              {event.periodWeatherStats.total_records} records
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Data Points
                             </Typography>
                           </Box>
                         </Box>
