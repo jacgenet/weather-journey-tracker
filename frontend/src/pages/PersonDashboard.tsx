@@ -132,6 +132,13 @@ const PersonDashboard: React.FC = () => {
         const sortedVisits = personData.visits?.sort((a, b) => 
           new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
         ) || [];
+        
+        console.log('📅 Sorted visits for timeline creation:', sortedVisits.map(v => ({
+          id: v.id,
+          start: v.start_date,
+          end: v.end_date,
+          location: allLocations.find(loc => loc.id === v.location_id)?.name
+        })));
 
         sortedVisits.forEach((visit, index) => {
           const visitLocation = allLocations.find(loc => loc.id === visit.location_id);
@@ -151,8 +158,11 @@ const PersonDashboard: React.FC = () => {
               
               console.log(`🔄 Visit ${index}: Previous visit ended ${previousVisitEnd.toISOString()}, current visit starts ${currentVisitStart.toISOString()}`);
               
-              if (previousVisitEnd < currentVisitStart) {
-                console.log('🏠 Gap detected, adding returned home event');
+              // Only create home event if there's at least a 1-day gap between visits
+              const daysBetweenVisits = Math.floor((currentVisitStart.getTime() - previousVisitEnd.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (daysBetweenVisits >= 1) {
+                console.log(`🏠 Gap of ${daysBetweenVisits} days detected, adding returned home event`);
                 const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
                 if (homeLocation) {
                   // Check if we already have a home event for this exact date
@@ -180,7 +190,7 @@ const PersonDashboard: React.FC = () => {
                   console.log('❌ Home location not found for gap-filling');
                 }
               } else {
-                console.log('⏭️ No gap between visits, skipping home event');
+                console.log(`⏭️ No significant gap between visits (${daysBetweenVisits} days), skipping home event`);
               }
             }
 
