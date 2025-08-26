@@ -283,13 +283,29 @@ def get_weather_period_stats(location_id):
                     'highest_temperature': None,
                     'lowest_temperature': None,
                     'temperature_range': None,
-                    'most_common_conditions': []
+                    'most_common_conditions': [],
+                    'data_exists': False,
+                    'data_coverage': 'fallback'
                 }
             }), 200
         
         # Calculate statistics for the period
         temperatures = [record.temperature for record in weather_records]
         descriptions = [record.description for record in weather_records if record.description]
+        
+        # Calculate data coverage percentage
+        total_days = (end_date - start_date).days + 1
+        days_with_data = len(set(record.recorded_at.date() for record in weather_records))
+        coverage_percentage = (days_with_data / total_days) * 100 if total_days > 0 else 0
+        
+        # Determine data existence state
+        data_exists = len(weather_records) > 0
+        if coverage_percentage >= 80:
+            data_coverage = 'complete'
+        elif coverage_percentage >= 50:
+            data_coverage = 'partial'
+        else:
+            data_coverage = 'fallback'
         
         period_stats = {
             'start_date': start_date.isoformat(),
@@ -302,7 +318,12 @@ def get_weather_period_stats(location_id):
                 'min': round(min(temperatures), 1),
                 'max': round(max(temperatures), 1)
             },
-            'most_common_conditions': []
+            'most_common_conditions': [],
+            'data_exists': data_exists,
+            'data_coverage': data_coverage,
+            'days_with_data': days_with_data,
+            'total_days': total_days,
+            'coverage_percentage': round(coverage_percentage, 1)
         }
         
         # Find most common weather conditions

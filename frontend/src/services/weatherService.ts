@@ -85,6 +85,11 @@ export interface WeatherPeriodStats {
     max: number;
   };
   most_common_conditions: [string, number][];
+  data_exists: boolean;
+  data_coverage: 'complete' | 'partial' | 'fallback';
+  days_with_data?: number;
+  total_days?: number;
+  coverage_percentage?: number;
 }
 
 export interface WeatherPeriodStatsResponse {

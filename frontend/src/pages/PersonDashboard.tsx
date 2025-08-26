@@ -30,6 +30,9 @@ import {
   Add,
   Edit,
   Thermostat,
+  CheckCircle,
+  Warning,
+  Info,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { peopleService, Person as PersonType } from '../services/peopleService';
@@ -55,9 +58,15 @@ interface TimelineEvent {
     highest_temperature: number;
     lowest_temperature: number;
     total_records: number;
+    data_exists: boolean;
+    data_coverage: 'complete' | 'partial' | 'fallback';
+    days_with_data?: number;
+    total_days?: number;
+    coverage_percentage?: number;
   };
   icon: React.ReactElement;
   color: 'primary' | 'secondary' | 'success' | 'info' | 'warning';
+  isCurrentLocation?: boolean;
 }
 
 const PersonDashboard: React.FC = () => {
@@ -233,7 +242,8 @@ const PersonDashboard: React.FC = () => {
                 description: `Currently at home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} - since ${formatDateConsistent(lastVisit.end_date || lastVisit.start_date)}`,
                 location: homeLocation,
                 icon: React.createElement(Home),
-                color: 'primary'
+                color: 'primary',
+                isCurrentLocation: true
               });
               console.log('🏠 Added final home event');
             } else {
@@ -244,8 +254,8 @@ const PersonDashboard: React.FC = () => {
           }
         }
 
-        // Sort events by date
-        events.sort((a, b) => a.date.getTime() - b.date.getTime());
+        // Sort events by date (newest first - current location at top)
+        events.sort((a, b) => b.date.getTime() - a.date.getTime());
         
         console.log('📅 Final timeline events:', events);
         
@@ -365,7 +375,12 @@ const PersonDashboard: React.FC = () => {
                   average_temperature: periodStats.period_stats.average_temperature,
                   highest_temperature: periodStats.period_stats.highest_temperature,
                   lowest_temperature: periodStats.period_stats.lowest_temperature,
-                  total_records: periodStats.period_stats.total_records
+                  total_records: periodStats.period_stats.total_records,
+                  data_exists: periodStats.period_stats.data_exists,
+                  data_coverage: periodStats.period_stats.data_coverage,
+                  days_with_data: periodStats.period_stats.days_with_data,
+                  total_days: periodStats.period_stats.total_days,
+                  coverage_percentage: periodStats.period_stats.coverage_percentage
                 }
               };
             } catch (statsErr) {
@@ -405,6 +420,44 @@ const PersonDashboard: React.FC = () => {
     }
     
     return age;
+  };
+
+  // Render weather data state indicator based on data existence
+  const renderWeatherDataState = (periodStats: TimelineEvent['periodWeatherStats']) => {
+    if (!periodStats) return null;
+
+    if (periodStats.data_exists && periodStats.data_coverage === 'complete') {
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <CheckCircle color="success" fontSize="small" />
+          <Typography variant="caption" color="success.main" sx={{ fontWeight: 'medium' }}>
+            Verified Data
+          </Typography>
+        </Box>
+      );
+    } else if (periodStats.data_exists && periodStats.data_coverage === 'partial') {
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Warning color="warning" fontSize="small" />
+          <Typography variant="caption" color="warning.main" sx={{ fontWeight: 'medium' }}>
+            Partial Data ({periodStats.coverage_percentage}% coverage)
+          </Typography>
+        </Box>
+      );
+    } else {
+      // Fallback state - no data exists for the exact period
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Info color="info" fontSize="small" />
+          <Typography variant="caption" color="info.main" sx={{ fontWeight: 'medium' }}>
+            Estimated Data
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            (Based on {periodStats.total_days || 0} days around visit)
+          </Typography>
+        </Box>
+      );
+    }
   };
 
   if (loading) {
@@ -559,6 +612,14 @@ const PersonDashboard: React.FC = () => {
             )}
           </Box>
           
+          {/* Timeline Order Explanation */}
+          <Box sx={{ mb: 2, p: 2, bgcolor: 'info.50', borderRadius: 2, border: '1px solid', borderColor: 'info.200' }}>
+            <Typography variant="body2" color="info.main" sx={{ fontWeight: 'medium', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Info fontSize="small" />
+              Timeline shows current location at top, with journey flowing chronologically from newest to oldest
+            </Typography>
+          </Box>
+          
           {timelineEvents.length > 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {timelineEvents.map((event, index) => (
@@ -569,9 +630,28 @@ const PersonDashboard: React.FC = () => {
                     alignItems: 'center',
                     gap: 2,
                     p: 2,
-                    bgcolor: 'grey.100',
+                    bgcolor: event.isCurrentLocation ? 'primary.50' : 'grey.100',
                     borderRadius: 2,
-                    boxShadow: 1,
+                    boxShadow: event.isCurrentLocation ? 3 : 1,
+                    border: event.isCurrentLocation ? '2px solid' : 'none',
+                    borderColor: event.isCurrentLocation ? 'primary.main' : 'transparent',
+                    position: 'relative',
+                    '&::before': event.isCurrentLocation ? {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '4px',
+                      bgcolor: 'primary.main',
+                      borderRadius: '2px 2px 0 0'
+                    } : {},
+                    animation: event.isCurrentLocation ? 'pulse 2s infinite' : 'none',
+                    '@keyframes pulse': {
+                      '0%': { boxShadow: '0 0 0 0 rgba(25, 118, 210, 0.7)' },
+                      '70%': { boxShadow: '0 0 0 10px rgba(25, 118, 210, 0)' },
+                      '100%': { boxShadow: '0 0 0 0 rgba(25, 118, 210, 0)' }
+                    }
                   }}
                 >
                   <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -588,6 +668,21 @@ const PersonDashboard: React.FC = () => {
                       }}
                     />
                     
+                    {/* Current Location Badge */}
+                    {event.isCurrentLocation && (
+                      <Chip
+                        icon={<LocationOn fontSize="small" />}
+                        label="Current Location"
+                        size="small"
+                        sx={{ 
+                          backgroundColor: 'primary.main',
+                          color: 'white',
+                          fontWeight: 'bold',
+                          '& .MuiChip-icon': { color: 'white' }
+                        }}
+                      />
+                    )}
+                    
                     {event.weather && (
                       <Chip
                         icon={<WbSunny fontSize="small" />}
@@ -599,6 +694,13 @@ const PersonDashboard: React.FC = () => {
                           '& .MuiChip-icon': { color: 'white' }
                         }}
                       />
+                    )}
+
+                    {/* Weather Data State Indicator */}
+                    {event.periodWeatherStats && (
+                      <Box sx={{ mb: 1 }}>
+                        {renderWeatherDataState(event.periodWeatherStats)}
+                      </Box>
                     )}
 
                     {/* Period Weather Statistics Chips */}
@@ -740,6 +842,9 @@ const PersonDashboard: React.FC = () => {
                         border: '1px solid',
                         borderColor: 'success.200'
                       }}>
+                        {/* Weather Data State Indicator */}
+                        {renderWeatherDataState(event.periodWeatherStats)}
+                        
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                           <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 'bold' }}>
                             Period Weather Statistics
@@ -784,6 +889,29 @@ const PersonDashboard: React.FC = () => {
                             </Typography>
                           </Box>
                         </Box>
+                      </Box>
+                    )}
+                    
+                    {/* Fallback Weather Data Display */}
+                    {event.periodWeatherStats && !event.periodWeatherStats.data_exists && (
+                      <Box sx={{ 
+                        mt: 2, 
+                        p: 1.5, 
+                        bgcolor: 'info.50', 
+                        borderRadius: 2, 
+                        border: '1px solid',
+                        borderColor: 'info.200'
+                      }}>
+                        {renderWeatherDataState(event.periodWeatherStats)}
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          No weather data available for the exact visit period. 
+                          The system is using estimated data based on surrounding dates.
+                        </Typography>
+                        {event.periodWeatherStats.total_days && (
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                            Reference period: {event.periodWeatherStats.total_days} days around the visit
+                          </Typography>
+                        )}
                       </Box>
                     )}
                   </Box>
