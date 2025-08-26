@@ -276,7 +276,18 @@ const PersonDashboard: React.FC = () => {
               console.log('❌ Home location not found for final event');
             }
           } else if (alreadyHasHomeEvent) {
-            console.log('⏭️ Home event already exists for this date, skipping final home event');
+            console.log('⏭️ Home event already exists for this date, updating existing event to "Currently at Home"');
+            // Update the existing home event to be the current location
+            const existingHomeEvent = events.find(event => 
+              event.type === 'home' && 
+              event.date.getTime() === lastVisitEnd.getTime()
+            );
+            if (existingHomeEvent && existingHomeEvent.location) {
+              existingHomeEvent.title = 'Currently at Home';
+              existingHomeEvent.description = `Currently at home: ${existingHomeEvent.location.name}, ${existingHomeEvent.location.city}, ${existingHomeEvent.location.country} - since ${formatDateConsistent(lastVisit.end_date || lastVisit.start_date)}`;
+              existingHomeEvent.isCurrentLocation = true;
+              console.log('🔄 Updated existing home event to "Currently at Home"');
+            }
           } else {
             console.log('⏭️ Last visit is ongoing, no final home event needed');
           }
