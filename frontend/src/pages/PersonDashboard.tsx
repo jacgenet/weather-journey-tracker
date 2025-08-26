@@ -627,9 +627,9 @@ const PersonDashboard: React.FC = () => {
                   key={event.id}
                   sx={{
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     gap: 2,
-                    p: 2,
+                    p: 3,
                     bgcolor: event.isCurrentLocation ? 'primary.50' : 'grey.100',
                     borderRadius: 2,
                     boxShadow: event.isCurrentLocation ? 3 : 1,
@@ -654,267 +654,142 @@ const PersonDashboard: React.FC = () => {
                     }
                   }}
                 >
-                  <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip
-                      icon={event.icon}
-                      label={event.type === 'home' && event.id === 'home-initial' ? 'Started at Home' : 
-                             event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
-                             event.type === 'home' ? 'Returned Home' :
-                             formatDateConsistent(event.date.toISOString().split('T')[0])}
-                      size="small"
-                      sx={{ 
-                        bgcolor: event.color + '.light',
-                        fontWeight: event.type === 'home' ? 'bold' : 'normal'
-                      }}
-                    />
-                    
-                    {/* Current Location Badge */}
-                    {event.isCurrentLocation && (
+                  {/* Top Row: Event Info and Basic Weather */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                       <Chip
-                        icon={<LocationOn fontSize="small" />}
-                        label="Current Location"
+                        icon={event.icon}
+                        label={event.type === 'home' && event.id === 'home-initial' ? 'Started at Home' : 
+                               event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
+                               event.type === 'home' ? 'Returned Home' :
+                               formatDateConsistent(event.date.toISOString().split('T')[0])}
                         size="small"
                         sx={{ 
-                          backgroundColor: 'primary.main',
-                          color: 'white',
-                          fontWeight: 'bold',
-                          '& .MuiChip-icon': { color: 'white' }
+                          bgcolor: event.color + '.light',
+                          fontWeight: event.type === 'home' ? 'bold' : 'normal'
                         }}
                       />
-                    )}
-                    
-                    {event.weather && (
-                      <Chip
-                        icon={<WbSunny fontSize="small" />}
-                        label={formatTemperature(event.weather.temperature)}
-                        size="small"
-                        sx={{ 
-                          backgroundColor: 'primary.main',
-                          color: 'white',
-                          '& .MuiChip-icon': { color: 'white' }
-                        }}
-                      />
-                    )}
-
-                    {/* Weather Data State Indicator */}
-                    {event.periodWeatherStats && (
-                      <Box sx={{ mb: 1 }}>
-                        {renderWeatherDataState(event.periodWeatherStats)}
-                      </Box>
-                    )}
-
-                    {/* Period Weather Statistics Chips */}
-                    {event.periodWeatherStats && event.periodWeatherStats.total_records > 0 && (
-                      <>
+                      
+                      {/* Current Location Badge */}
+                      {event.isCurrentLocation && (
                         <Chip
-                          icon={<Thermostat fontSize="small" />}
-                          label={`Avg: ${formatTemperature(event.periodWeatherStats.average_temperature)}`}
+                          icon={<LocationOn fontSize="small" />}
+                          label="Current Location"
                           size="small"
                           sx={{ 
-                            backgroundColor: 'success.main',
+                            backgroundColor: 'primary.main',
                             color: 'white',
+                            fontWeight: 'bold',
                             '& .MuiChip-icon': { color: 'white' }
                           }}
                         />
+                      )}
+                      
+                      {event.weather && (
                         <Chip
                           icon={<WbSunny fontSize="small" />}
-                          label={`High: ${formatTemperature(event.periodWeatherStats.highest_temperature)}`}
+                          label={formatTemperature(event.weather.temperature)}
                           size="small"
                           sx={{ 
-                            backgroundColor: 'warning.main',
+                            backgroundColor: 'primary.main',
                             color: 'white',
                             '& .MuiChip-icon': { color: 'white' }
                           }}
                         />
-                        <Chip
-                          icon={<Cloud fontSize="small" />}
-                          label={`Low: ${formatTemperature(event.periodWeatherStats.lowest_temperature)}`}
-                          size="small"
-                          sx={{ 
-                            backgroundColor: 'info.main',
-                            color: 'white',
-                            '& .MuiChip-icon': { color: 'white' }
-                          }}
-                        />
-                      </>
-                    )}
+                      )}
+                    </Box>
+                    
+                    {/* Event Title and Description */}
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography variant="h6" component="span" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                        {event.type === 'home' && event.id === 'home-initial' ? 'Started at Home' :
+                         event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
+                         event.type === 'home' ? 'Returned Home' :
+                         event.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {event.description}
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" component="span" sx={{ fontWeight: 'bold' }}>
-                      {event.type === 'home' && event.id === 'home-initial' ? 'Started at Home' :
-                       event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
-                       event.type === 'home' ? 'Returned Home' :
-                       event.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {event.description}
-                    </Typography>
-                    
-                    {event.location && (
-                      <Box sx={{ 
-                        mt: 1.5, 
-                        p: 1, 
-                        bgcolor: 'secondary.50', 
-                        borderRadius: 1.5, 
-                        border: '1px solid',
-                        borderColor: 'secondary.200'
-                      }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                          <LocationOn fontSize="small" color="secondary" />
-                          <Typography variant="body2" color="secondary.main" sx={{ fontWeight: 'medium' }}>
-                            {event.location.name}
-                          </Typography>
+
+                  {/* Second Row: Weather Data State and Statistics */}
+                  {event.periodWeatherStats && (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {/* Weather Data State Indicator */}
+                      {renderWeatherDataState(event.periodWeatherStats)}
+                      
+                      {/* Period Weather Statistics Chips */}
+                      {event.periodWeatherStats.total_records > 0 && (
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Chip
+                            icon={<Thermostat fontSize="small" />}
+                            label={`Avg: ${formatTemperature(event.periodWeatherStats.average_temperature)}`}
+                            size="small"
+                            sx={{ 
+                              backgroundColor: 'success.main',
+                              color: 'white',
+                              '& .MuiChip-icon': { color: 'white' }
+                            }}
+                          />
+                          <Chip
+                            icon={<WbSunny fontSize="small" />}
+                            label={`High: ${formatTemperature(event.periodWeatherStats.highest_temperature)}`}
+                            size="small"
+                            sx={{ 
+                              backgroundColor: 'warning.main',
+                              color: 'white',
+                              '& .MuiChip-icon': { color: 'white' }
+                            }}
+                          />
+                          <Chip
+                            icon={<Cloud fontSize="small" />}
+                            label={`Low: ${formatTemperature(event.periodWeatherStats.lowest_temperature)}`}
+                            size="small"
+                            sx={{ 
+                              backgroundColor: 'info.main',
+                              color: 'white',
+                              '& .MuiChip-icon': { color: 'white' }
+                            }}
+                          />
                         </Box>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            {event.location.city}, {event.location.country}
-                          </Typography>
-                          
-                          {event.location.latitude && event.location.longitude && (
-                            <Chip
-                              icon={<Visibility fontSize="small" />}
-                              label={`${event.location.latitude.toFixed(4)}, ${event.location.longitude.toFixed(4)}`}
-                              size="small"
-                              variant="outlined"
-                              color="secondary"
-                            />
-                          )}
-                        </Box>
-                      </Box>
-                    )}
-                    
-                    {event.weather && (
-                      <Box sx={{ 
-                        mt: 2, 
-                        p: 1.5, 
-                        bgcolor: 'primary.50', 
-                        borderRadius: 2, 
-                        border: '1px solid',
-                        borderColor: 'primary.200'
-                      }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="subtitle2" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                            Weather Conditions
-                          </Typography>
-                          <WbSunny color="warning" />
-                        </Box>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                              {formatTemperature(event.weather.temperature)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Temperature
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="body2" color="text.primary" sx={{ fontWeight: 'medium' }}>
-                              {event.weather.description}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Conditions
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ textAlign: 'center' }}>
-                            <Cloud color="info" />
-                            <Typography variant="body2" color="text.primary">
-                              {event.weather.humidity}%
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Humidity
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Box>
-                    )}
-                    
-                    {/* Period Weather Statistics */}
-                    {event.periodWeatherStats && event.periodWeatherStats.total_records > 0 && (
-                      <Box sx={{ 
-                        mt: 2, 
-                        p: 1.5, 
-                        bgcolor: 'success.50', 
-                        borderRadius: 2, 
-                        border: '1px solid',
-                        borderColor: 'success.200'
-                      }}>
-                        {/* Weather Data State Indicator */}
-                        {renderWeatherDataState(event.periodWeatherStats)}
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 'bold' }}>
-                            Period Weather Statistics
-                          </Typography>
-                          <Thermostat color="success" />
-                        </Box>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
-                              {formatTemperature(event.periodWeatherStats.average_temperature)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Average
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="h6" color="warning.main" sx={{ fontWeight: 'bold' }}>
-                              {formatTemperature(event.periodWeatherStats.highest_temperature)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              High
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="h6" color="info.main" sx={{ fontWeight: 'bold' }}>
-                              {formatTemperature(event.periodWeatherStats.lowest_temperature)}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Low
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="body2" color="text.secondary">
-                              {event.periodWeatherStats.total_records} records
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Data Points
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Box>
-                    )}
-                    
-                    {/* Fallback Weather Data Display */}
-                    {event.periodWeatherStats && !event.periodWeatherStats.data_exists && (
-                      <Box sx={{ 
-                        mt: 2, 
-                        p: 1.5, 
-                        bgcolor: 'info.50', 
-                        borderRadius: 2, 
-                        border: '1px solid',
-                        borderColor: 'info.200'
-                      }}>
-                        {renderWeatherDataState(event.periodWeatherStats)}
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                          No weather data available for the exact visit period. 
-                          The system is using estimated data based on surrounding dates.
+                      )}
+                    </Box>
+                  )}
+
+                  {/* Location Details */}
+                  {event.location && (
+                    <Box sx={{ 
+                      p: 1.5, 
+                      bgcolor: 'secondary.50', 
+                      borderRadius: 1.5, 
+                      border: '1px solid',
+                      borderColor: 'secondary.200'
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <LocationOn fontSize="small" color="secondary" />
+                        <Typography variant="body2" color="secondary.main" sx={{ fontWeight: 'medium' }}>
+                          {event.location.name}
                         </Typography>
-                        {event.periodWeatherStats.total_days && (
-                          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                            Reference period: {event.periodWeatherStats.total_days} days around the visit
-                          </Typography>
+                      </Box>
+                      
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {event.location.city}, {event.location.country}
+                        </Typography>
+                        
+                        {event.location.latitude && event.location.longitude && (
+                          <Chip
+                            icon={<Visibility fontSize="small" />}
+                            label={`${event.location.latitude.toFixed(4)}, ${event.location.longitude.toFixed(4)}`}
+                            size="small"
+                            variant="outlined"
+                            color="secondary"
+                          />
                         )}
                       </Box>
-                    )}
-                  </Box>
+                    </Box>
+                  )}
                 </Box>
               ))}
             </Box>
