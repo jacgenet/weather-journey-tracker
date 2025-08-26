@@ -155,17 +155,27 @@ const PersonDashboard: React.FC = () => {
                 console.log('🏠 Gap detected, adding returned home event');
                 const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
                 if (homeLocation) {
-                  events.push({
-                    id: `home-${previousVisit.id}-${visit.id}`,
-                    date: previousVisitEnd,
-                    type: 'home',
-                    title: 'Returned Home',
-                    description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} - ${formatDateConsistent(previousVisit.end_date || previousVisit.start_date)}`,
-                    location: homeLocation,
-                    icon: React.createElement(Home),
-                    color: 'primary'
-                  });
-                  console.log('🏠 Added returned home event');
+                  // Check if we already have a home event for this exact date
+                  const existingHomeEvent = events.find(event => 
+                    event.type === 'home' && 
+                    event.date.getTime() === previousVisitEnd.getTime()
+                  );
+                  
+                  if (!existingHomeEvent) {
+                    events.push({
+                      id: `home-${previousVisit.id}-${visit.id}`,
+                      date: previousVisitEnd,
+                      type: 'home',
+                      title: 'Returned Home',
+                      description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} - ${formatDateConsistent(previousVisit.end_date || previousVisit.start_date)}`,
+                      location: homeLocation,
+                      icon: React.createElement(Home),
+                      color: 'primary'
+                    });
+                    console.log('🏠 Added returned home event');
+                  } else {
+                    console.log('⚠️ Home event already exists for this date, skipping duplicate');
+                  }
                 } else {
                   console.log('❌ Home location not found for gap-filling');
                 }
@@ -222,7 +232,7 @@ const PersonDashboard: React.FC = () => {
          }
        });
 
-                // Add final home event after the last visit
+                // Add final home event after the last visit (only if not already added as a gap-filler)
         const lastVisit = sortedVisits[sortedVisits.length - 1];
         if (lastVisit) {
           const lastVisitEnd = new Date(lastVisit.end_date || lastVisit.start_date);
@@ -230,7 +240,13 @@ const PersonDashboard: React.FC = () => {
           
           console.log(`🏁 Last visit ended: ${lastVisitEnd.toISOString()}, today: ${today.toISOString()}`);
           
-          if (lastVisitEnd < today) {
+          // Check if we already added a home event for this exact date (from gap-filling)
+          const alreadyHasHomeEvent = events.some(event => 
+            event.type === 'home' && 
+            event.date.getTime() === lastVisitEnd.getTime()
+          );
+          
+          if (lastVisitEnd < today && !alreadyHasHomeEvent) {
             console.log('🏠 Adding final home event');
             const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
             if (homeLocation) {
@@ -249,6 +265,8 @@ const PersonDashboard: React.FC = () => {
             } else {
               console.log('❌ Home location not found for final event');
             }
+          } else if (alreadyHasHomeEvent) {
+            console.log('⏭️ Home event already exists for this date, skipping final home event');
           } else {
             console.log('⏭️ Last visit is ongoing, no final home event needed');
           }
