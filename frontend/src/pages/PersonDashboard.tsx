@@ -44,6 +44,8 @@ import { usePreferences, TemperatureUnit } from '../contexts/PreferencesContext'
 interface TimelineEvent {
   id: string;
   date: Date;
+  startDate: Date;  // Add start date for date range display
+  endDate: Date;    // Add end date for date range display
   type: 'birth' | 'home' | 'visit';
   title: string;
   description: string;
@@ -79,10 +81,16 @@ const PersonDashboard: React.FC = () => {
   const [error, setError] = useState('');
   const { preferences, formatTemperature, setTemperatureUnit } = usePreferences();
 
+  // Parse dates consistently without timezone conversion
+  const parseDateConsistent = (dateString: string): Date => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   // Format dates consistently using explicit date parsing
   const formatDateConsistent = (dateString: string) => {
     // Parse ISO date string and ensure consistent formatting
-    const date = new Date(dateString + 'T00:00:00'); // Add time to avoid timezone issues
+    const date = parseDateConsistent(dateString);
     return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
   };
 
@@ -112,15 +120,17 @@ const PersonDashboard: React.FC = () => {
         
         // Add birth event
         if (personData.birth_date) {
-          const birthDate = new Date(personData.birth_date);
+          const birthDate = parseDateConsistent(personData.birth_date);
           const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
           if (homeLocation) {
             events.push({
               id: 'birth',
               date: birthDate,
+              startDate: birthDate,
+              endDate: birthDate,
               type: 'birth',
               title: 'Started at Home',
-              description: `Started living at: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} - ${formatDateConsistent(personData.birth_date)}`,
+              description: `Started living at: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(personData.birth_date)}`,
               location: homeLocation,
               icon: React.createElement(Home),
               color: 'primary'
@@ -130,7 +140,7 @@ const PersonDashboard: React.FC = () => {
 
         // Add visit events and home events between visits
         const sortedVisits = personData.visits?.sort((a, b) => 
-          new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+          parseDateConsistent(a.start_date).getTime() - parseDateConsistent(b.start_date).getTime()
         ) || [];
         
         console.log('📅 Sorted visits for timeline creation:', sortedVisits.map(v => ({
@@ -146,15 +156,15 @@ const PersonDashboard: React.FC = () => {
             console.log(`📅 Processing visit ${visit.id}:`, {
               start_date: visit.start_date,
               end_date: visit.end_date,
-              parsed_start: new Date(visit.start_date),
-              parsed_end: visit.end_date ? new Date(visit.end_date) : 'No end date'
+              parsed_start: parseDateConsistent(visit.start_date),
+              parsed_end: visit.end_date ? parseDateConsistent(visit.end_date) : 'No end date'
             });
             
             // Add home event before this visit (if not the first visit)
             if (index > 0) {
               const previousVisit = sortedVisits[index - 1];
-              const previousVisitEnd = new Date(previousVisit.end_date || previousVisit.start_date);
-              const currentVisitStart = new Date(visit.start_date);
+              const previousVisitEnd = parseDateConsistent(previousVisit.end_date || previousVisit.start_date);
+              const currentVisitStart = parseDateConsistent(visit.start_date);
               
               console.log(`🔄 Visit ${index}: Previous visit ended ${previousVisitEnd.toISOString()}, current visit starts ${currentVisitStart.toISOString()}`);
               
@@ -175,9 +185,11 @@ const PersonDashboard: React.FC = () => {
                     events.push({
                       id: `home-${previousVisit.id}-${visit.id}`,
                       date: previousVisitEnd,
+                      startDate: previousVisitEnd,
+                      endDate: previousVisitEnd,
                       type: 'home',
                       title: 'Returned Home',
-                      description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} - ${formatDateConsistent(previousVisit.end_date || previousVisit.start_date)}`,
+                      description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(previousVisit.end_date || previousVisit.start_date)}`,
                       location: homeLocation,
                       icon: React.createElement(Home),
                       color: 'primary'
@@ -195,8 +207,8 @@ const PersonDashboard: React.FC = () => {
             }
 
            // Add the visit event
-           const visitStartDate = new Date(visit.start_date);
-           const visitEndDate = visit.end_date ? new Date(visit.end_date) : null;
+           const visitStartDate = parseDateConsistent(visit.start_date);
+           const visitEndDate = visit.end_date ? parseDateConsistent(visit.end_date) : null;
            
            // Log the raw date strings and parsed dates for debugging
            console.log(`🔍 Raw dates for ${visitLocation.name}:`, {
@@ -209,8 +221,8 @@ const PersonDashboard: React.FC = () => {
            });
            
            // Test the date parsing
-           const testStartDate = new Date(visit.start_date + 'T00:00:00');
-           const testEndDate = visit.end_date ? new Date(visit.end_date + 'T00:00:00') : null;
+           const testStartDate = parseDateConsistent(visit.start_date);
+           const testEndDate = visit.end_date ? parseDateConsistent(visit.end_date) : null;
            console.log(`🧪 Test date parsing for ${visitLocation.name}:`, {
              start_iso: visit.start_date + 'T00:00:00',
              start_parsed: testStartDate,
@@ -232,9 +244,11 @@ const PersonDashboard: React.FC = () => {
            events.push({
              id: `visit-${visit.id}`,
              date: visitStartDate,
+             startDate: visitStartDate,
+             endDate: visitEndDate || visitStartDate,
              type: 'visit',
              title: `Visit to ${visitLocation.name}`,
-             description: `${visitLocation.city}, ${visitLocation.country} - ${formatDateConsistent(visit.start_date)}${visit.end_date && visit.end_date !== visit.start_date ? ` to ${formatDateConsistent(visit.end_date)}` : ''}${visit.notes ? ` - ${visit.notes}` : ''}`,
+             description: `${visitLocation.city}, ${visitLocation.country}${visit.end_date && visit.end_date !== visit.start_date ? ` • ${formatDateConsistent(visit.start_date)} to ${formatDateConsistent(visit.end_date)}` : ` • ${formatDateConsistent(visit.start_date)}`}${visit.notes ? ` • ${visit.notes}` : ''}`,
              location: visitLocation,
              icon: React.createElement(LocationOn),
              color: 'info'
@@ -245,7 +259,7 @@ const PersonDashboard: React.FC = () => {
                 // Add final home event after the last visit (only if not already added as a gap-filler)
         const lastVisit = sortedVisits[sortedVisits.length - 1];
         if (lastVisit) {
-          const lastVisitEnd = new Date(lastVisit.end_date || lastVisit.start_date);
+          const lastVisitEnd = parseDateConsistent(lastVisit.end_date || lastVisit.start_date);
           const today = new Date();
           
           console.log(`🏁 Last visit ended: ${lastVisitEnd.toISOString()}, today: ${today.toISOString()}`);
@@ -263,9 +277,11 @@ const PersonDashboard: React.FC = () => {
               events.push({
                 id: `home-final-${lastVisit.id}`,
                 date: lastVisitEnd,
+                startDate: lastVisitEnd,
+                endDate: new Date(), // Currently ongoing, so end date is today
                 type: 'home',
                 title: 'Currently at Home',
-                description: `Currently at home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} - since ${formatDateConsistent(lastVisit.end_date || lastVisit.start_date)}`,
+                description: `Currently at home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • since ${formatDateConsistent(lastVisit.end_date || lastVisit.start_date)}`,
                 location: homeLocation,
                 icon: React.createElement(Home),
                 color: 'primary',
@@ -284,8 +300,10 @@ const PersonDashboard: React.FC = () => {
             );
             if (existingHomeEvent && existingHomeEvent.location) {
               existingHomeEvent.title = 'Currently at Home';
-              existingHomeEvent.description = `Currently at home: ${existingHomeEvent.location.name}, ${existingHomeEvent.location.city}, ${existingHomeEvent.location.country} - since ${formatDateConsistent(lastVisit.end_date || lastVisit.start_date)}`;
+              existingHomeEvent.description = `Currently at home: ${existingHomeEvent.location.name}, ${existingHomeEvent.location.city}, ${existingHomeEvent.location.country} • since ${formatDateConsistent(lastVisit.end_date || lastVisit.start_date)}`;
               existingHomeEvent.isCurrentLocation = true;
+              existingHomeEvent.startDate = lastVisitEnd;
+              existingHomeEvent.endDate = new Date(); // Currently ongoing, so end date is today
               console.log('🔄 Updated existing home event to "Currently at Home"');
             }
           } else {
@@ -369,7 +387,7 @@ const PersonDashboard: React.FC = () => {
               
               if (event.type === 'home') {
                 // For home events, use a more realistic period that includes actual weather data
-                const eventDate = new Date(event.date);
+                const eventDate = event.date; // event.date is already a Date object
                 // Use a 30-day period centered on the event date to match realistic expectations
                 startDate = new Date(eventDate.getTime() - 15 * 24 * 60 * 60 * 1000).toISOString(); // 15 days before
                 endDate = new Date(eventDate.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString(); // 15 days after
@@ -378,21 +396,21 @@ const PersonDashboard: React.FC = () => {
                 // For visit events, find the actual visit data to get start/end dates
                 const visit = person.visits.find(v => v.location_id === event.location!.id);
                 if (visit) {
-                  startDate = new Date(visit.start_date).toISOString();
+                  startDate = parseDateConsistent(visit.start_date).toISOString();
                   // Use EXACT visit dates - no buffer to match timeline display
-                  const visitEnd = visit.end_date ? new Date(visit.end_date) : new Date(visit.start_date);
+                  const visitEnd = visit.end_date ? parseDateConsistent(visit.end_date) : parseDateConsistent(visit.start_date);
                   endDate = visitEnd.toISOString();
                   console.log(`🎯 Visit event - using EXACT visit dates: ${startDate} to ${endDate}`);
                 } else {
                   // Fallback to default period if visit not found
-                  const eventDate = new Date(event.date);
+                  const eventDate = event.date; // event.date is already a Date object
                   startDate = new Date(eventDate.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
                   endDate = new Date(eventDate.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
                   console.log(`⚠️ Visit event - fallback to default period: ${startDate} to ${endDate}`);
                 }
               } else {
                 // Fallback to default period
-                const eventDate = new Date(event.date);
+                const eventDate = event.date; // event.date is already a Date object
                 startDate = new Date(eventDate.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
                 endDate = new Date(eventDate.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
                 console.log(`⚠️ Unknown event type - fallback to default period: ${startDate} to ${endDate}`);
@@ -449,7 +467,7 @@ const PersonDashboard: React.FC = () => {
   };
 
   const getAge = (birthDate: string) => {
-    const birth = new Date(birthDate);
+    const birth = parseDateConsistent(birthDate);
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
@@ -461,8 +479,14 @@ const PersonDashboard: React.FC = () => {
     return age;
   };
 
+  const formatDateRange = (startDate: Date, endDate: Date) => {
+    const start = formatDate(startDate);
+    const end = endDate ? formatDate(endDate) : 'Present';
+    return `${start} - ${end}`;
+  };
+
   // Render weather data state indicator based on data existence
-  const renderWeatherDataState = (periodStats: TimelineEvent['periodWeatherStats']) => {
+  const renderWeatherDataState = (periodStats: TimelineEvent['periodWeatherStats'], event: TimelineEvent) => {
     if (!periodStats) return null;
 
     if (periodStats.data_exists && periodStats.data_coverage === 'complete') {
@@ -472,6 +496,9 @@ const PersonDashboard: React.FC = () => {
           <Typography variant="caption" color="success.main" sx={{ fontWeight: 'medium' }}>
             Verified Data
           </Typography>
+          <Typography variant="caption" color="text.secondary">
+            ({event.startDate.getTime() === event.endDate.getTime() ? 'Single day' : 'Multi-day period'})
+          </Typography>
         </Box>
       );
     } else if (periodStats.data_exists && periodStats.data_coverage === 'partial') {
@@ -480,6 +507,9 @@ const PersonDashboard: React.FC = () => {
           <Warning color="warning" fontSize="small" />
           <Typography variant="caption" color="warning.main" sx={{ fontWeight: 'medium' }}>
             Partial Data ({periodStats.coverage_percentage}% coverage)
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            ({event.startDate.getTime() === event.endDate.getTime() ? 'Single day' : 'Multi-day period'})
           </Typography>
         </Box>
       );
@@ -492,7 +522,7 @@ const PersonDashboard: React.FC = () => {
             Estimated Data
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            (Based on {periodStats.total_days || 0} days around visit)
+            (Based on {periodStats.total_days || 0} days around {event.startDate.getTime() === event.endDate.getTime() ? 'visit' : 'visit period'})
           </Typography>
         </Box>
       );
@@ -701,11 +731,57 @@ const PersonDashboard: React.FC = () => {
             )}
           </Box>
           
+          {/* Timeline Summary */}
+          <Box sx={{ mb: 2, p: 2, bgcolor: 'success.50', borderRadius: 2, border: '1px solid', borderColor: 'success.200' }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={3}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
+                    {timelineEvents.length}
+                  </Typography>
+                  <Typography variant="body2" color="success.main">
+                    Total Events
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
+                    {timelineEvents.filter(e => e.startDate.getTime() !== e.endDate.getTime() && e.type !== 'home').length}
+                  </Typography>
+                  <Typography variant="body2" color="success.main">
+                    Multi-day Visits
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
+                    {timelineEvents.filter(e => e.type === 'home').length}
+                  </Typography>
+                  <Typography variant="body2" color="success.main">
+                    Home Events
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
+                    {timelineEvents.filter(e => e.isCurrentLocation).length}
+                  </Typography>
+                  <Typography variant="body2" color="success.main">
+                    Current Locations
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
+          
           {/* Timeline Order Explanation */}
           <Box sx={{ mb: 2, p: 2, bgcolor: 'info.50', borderRadius: 2, border: '1px solid', borderColor: 'info.200' }}>
             <Typography variant="body2" color="info.main" sx={{ fontWeight: 'medium', display: 'flex', alignItems: 'center', gap: 1 }}>
               <Info fontSize="small" />
-              Timeline shows current location at top, with journey flowing chronologically from newest to oldest
+              Timeline shows current location at top, with journey flowing chronologically from newest to oldest. Each event displays its full date range for clarity.
             </Typography>
           </Box>
           
@@ -719,7 +795,8 @@ const PersonDashboard: React.FC = () => {
                     flexDirection: 'column',
                     gap: 2,
                     p: 3,
-                    bgcolor: event.isCurrentLocation ? 'primary.50' : 'grey.100',
+                    bgcolor: event.isCurrentLocation ? 'primary.50' : 
+                              event.startDate.getTime() !== event.endDate.getTime() ? 'success.50' : 'grey.100',
                     borderRadius: 2,
                     boxShadow: event.isCurrentLocation ? 3 : 1,
                     border: event.isCurrentLocation ? '2px solid' : 'none',
@@ -751,7 +828,7 @@ const PersonDashboard: React.FC = () => {
                         label={event.type === 'home' && event.id === 'home-initial' ? 'Started at Home' : 
                                event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
                                event.type === 'home' ? 'Returned Home' :
-                               formatDateConsistent(event.date.toISOString().split('T')[0])}
+                               formatDateRange(event.startDate, event.endDate)}
                         size="small"
                         sx={{ 
                           bgcolor: event.color + '.light',
@@ -769,6 +846,36 @@ const PersonDashboard: React.FC = () => {
                             backgroundColor: 'primary.main',
                             color: 'white',
                             fontWeight: 'bold',
+                            '& .MuiChip-icon': { color: 'white' }
+                          }}
+                        />
+                      )}
+                      
+                      {/* Multi-day Event Badge */}
+                      {event.startDate.getTime() !== event.endDate.getTime() && event.type !== 'home' && (
+                        <Chip
+                          icon={<CalendarToday fontSize="small" />}
+                          label="Multi-day"
+                          size="small"
+                          sx={{ 
+                            backgroundColor: 'success.main',
+                            color: 'white',
+                            fontWeight: 'medium',
+                            '& .MuiChip-icon': { color: 'white' }
+                          }}
+                        />
+                      )}
+                      
+                      {/* Ongoing Event Badge */}
+                      {event.isCurrentLocation && (
+                        <Chip
+                          icon={<CalendarToday fontSize="small" />}
+                          label="Ongoing"
+                          size="small"
+                          sx={{ 
+                            backgroundColor: 'primary.main',
+                            color: 'white',
+                            fontWeight: 'medium',
                             '& .MuiChip-icon': { color: 'white' }
                           }}
                         />
@@ -796,6 +903,52 @@ const PersonDashboard: React.FC = () => {
                          event.type === 'home' ? 'Returned Home' :
                          event.title}
                       </Typography>
+                      
+                      {/* Date Range Display */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <CalendarToday fontSize="small" color="action" />
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'medium' }}>
+                          {event.type === 'home' && event.id === 'home-initial' 
+                            ? `Birth: ${formatDateConsistent(event.startDate.toISOString().split('T')[0])}`
+                            : event.type === 'home' && event.id.includes('home-final')
+                            ? `Since ${formatDateConsistent(event.startDate.toISOString().split('T')[0])}`
+                            : event.type === 'home'
+                            ? `Returned: ${formatDateConsistent(event.startDate.toISOString().split('T')[0])}`
+                            : event.startDate.getTime() === event.endDate.getTime() 
+                            ? formatDateConsistent(event.startDate.toISOString().split('T')[0])
+                            : `${formatDateConsistent(event.startDate.toISOString().split('T')[0])} - ${formatDateConsistent(event.endDate.toISOString().split('T')[0])}`
+                          }
+                        </Typography>
+                        
+                        {/* Duration for multi-day events (excluding home events) */}
+                        {event.startDate.getTime() !== event.endDate.getTime() && event.type !== 'home' && (
+                          <Chip
+                            label={`${Math.ceil((event.endDate.getTime() - event.startDate.getTime()) / (1000 * 60 * 60 * 24))} days`}
+                            size="small"
+                            variant="outlined"
+                            sx={{ 
+                              borderColor: 'success.main',
+                              color: 'success.main',
+                              fontSize: '0.7rem'
+                            }}
+                          />
+                        )}
+                        
+                        {/* Duration for ongoing home events */}
+                        {event.isCurrentLocation && (
+                          <Chip
+                            label={`${Math.ceil((event.endDate.getTime() - event.startDate.getTime()) / (1000 * 60 * 60 * 24))} days`}
+                            size="small"
+                            variant="outlined"
+                            sx={{ 
+                              borderColor: 'primary.main',
+                              color: 'primary.main',
+                              fontSize: '0.7rem'
+                            }}
+                          />
+                        )}
+                      </Box>
+                      
                       <Typography variant="body2" color="text.secondary">
                         {event.description}
                       </Typography>
@@ -806,41 +959,49 @@ const PersonDashboard: React.FC = () => {
                   {event.periodWeatherStats && (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                       {/* Weather Data State Indicator */}
-                      {renderWeatherDataState(event.periodWeatherStats)}
+                      {renderWeatherDataState(event.periodWeatherStats, event)}
                       
                       {/* Period Weather Statistics Chips */}
                       {event.periodWeatherStats.total_records > 0 && (
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          <Chip
-                            icon={<Thermostat fontSize="small" />}
-                            label={`Avg: ${formatTemperature(event.periodWeatherStats.average_temperature)}`}
-                            size="small"
-                            sx={{ 
-                              backgroundColor: 'success.main',
-                              color: 'white',
-                              '& .MuiChip-icon': { color: 'white' }
-                            }}
-                          />
-                          <Chip
-                            icon={<WbSunny fontSize="small" />}
-                            label={`High: ${formatTemperature(event.periodWeatherStats.highest_temperature)}`}
-                            size="small"
-                            sx={{ 
-                              backgroundColor: 'warning.main',
-                              color: 'white',
-                              '& .MuiChip-icon': { color: 'white' }
-                            }}
-                          />
-                          <Chip
-                            icon={<Cloud fontSize="small" />}
-                            label={`Low: ${formatTemperature(event.periodWeatherStats.lowest_temperature)}`}
-                            size="small"
-                            sx={{ 
-                              backgroundColor: 'info.main',
-                              color: 'white',
-                              '& .MuiChip-icon': { color: 'white' }
-                            }}
-                          />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          {/* Weather Data Period Info */}
+                          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                            Weather data for {event.startDate.getTime() === event.endDate.getTime() ? 'this day' : 'this period'}
+                          </Typography>
+                          
+                          {/* Temperature Chips */}
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            <Chip
+                              icon={<Thermostat fontSize="small" />}
+                              label={`Avg: ${formatTemperature(event.periodWeatherStats.average_temperature)}`}
+                              size="small"
+                              sx={{ 
+                                backgroundColor: 'success.main',
+                                color: 'white',
+                                '& .MuiChip-icon': { color: 'white' }
+                              }}
+                            />
+                            <Chip
+                              icon={<WbSunny fontSize="small" />}
+                              label={`High: ${formatTemperature(event.periodWeatherStats.highest_temperature)}`}
+                              size="small"
+                              sx={{ 
+                                backgroundColor: 'warning.main',
+                                color: 'white',
+                                '& .MuiChip-icon': { color: 'white' }
+                              }}
+                            />
+                            <Chip
+                              icon={<Cloud fontSize="small" />}
+                              label={`Low: ${formatTemperature(event.periodWeatherStats.lowest_temperature)}`}
+                              size="small"
+                              sx={{ 
+                                backgroundColor: 'info.main',
+                                color: 'white',
+                                fontSize: '0.7rem'
+                              }}
+                            />
+                          </Box>
                         </Box>
                       )}
                     </Box>

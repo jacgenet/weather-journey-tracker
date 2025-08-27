@@ -5,10 +5,8 @@ from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from datetime import timedelta
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -16,6 +14,11 @@ migrate = Migrate()
 jwt = JWTManager()
 
 def create_app(config_name='development'):
+    # Load environment variables first
+    current_dir = Path(__file__).parent.parent
+    env_path = current_dir / '.env'
+    load_dotenv(dotenv_path=env_path)
+    
     app = Flask(__name__)
     
     # Configuration
@@ -25,7 +28,10 @@ def create_app(config_name='development'):
         'postgresql://localhost/weather_journey_db'
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key')
+    
+    # Get JWT secret from environment
+    jwt_secret_from_env = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key')
+    app.config['JWT_SECRET_KEY'] = jwt_secret_from_env
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
     
@@ -41,10 +47,14 @@ def create_app(config_name='development'):
     migrate.init_app(app, db)
     jwt.init_app(app)
     
-    # Debug: Log JWT configuration
+    # Explicitly configure JWT with the app config
+    jwt.secret_key = app.config['JWT_SECRET_KEY']
+    
+    # Log JWT configuration
     print(f"JWT Debug - SECRET_KEY: {app.config['SECRET_KEY'][:10]}...")
-    print(f"JWT Debug - JWT_SECRET_KEY: {app.config['JWT_SECRET_KEY'][:10]}...")
+    print(f"JWT Debug - JWT_SECRET_KEY: {app.config['JWT_SECRET_KEY']}")
     print(f"JWT Debug - JWT_ACCESS_TOKEN_EXPIRES: {app.config['JWT_ACCESS_TOKEN_EXPIRES']}")
+    print(f"JWT Debug - JWT Manager secret_key: {jwt.secret_key}")
     
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     

@@ -465,13 +465,17 @@ const People: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString();
+    // Parse the date string directly without timezone conversion to avoid ±1 day shifts
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString();
   };
 
   const calculateAge = (birthDate?: string) => {
     if (!birthDate) return null;
     const today = new Date();
-    const birth = new Date(birthDate);
+    // Parse birth date without timezone conversion to avoid ±1 day shifts
+    const [year, month, day] = birthDate.split('-').map(Number);
+    const birth = new Date(year, month - 1, day);
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
