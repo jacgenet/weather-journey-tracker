@@ -170,6 +170,48 @@ const PersonDashboard: React.FC = () => {
           console.log(`    Start: ${visit.start_date} → ${startDate.toISOString()}`);
           console.log(`    End: ${visit.end_date || visit.start_date} → ${endDate.toISOString()}`);
         });
+        
+        // FORCED GAP-FILLING: Ensure all gaps between visits are filled with home events
+        console.log('🏠 Starting forced gap-filling for all visits...');
+        for (let i = 0; i < sortedVisits.length - 1; i++) {
+          const currentVisit = sortedVisits[i];
+          const nextVisit = sortedVisits[i + 1];
+          
+          const currentVisitEnd = parseDateConsistent(currentVisit.end_date || currentVisit.start_date);
+          const nextVisitStart = parseDateConsistent(nextVisit.start_date);
+          
+          console.log(`🔍 Checking gap between visit ${i + 1} and ${i + 2}:`);
+          console.log(`  Current visit end: ${currentVisitEnd.toISOString()} (${formatDateConsistent(currentVisit.end_date || currentVisit.start_date)})`);
+          console.log(`  Next visit start: ${nextVisitStart.toISOString()} (${formatDateConsistent(nextVisit.start_date)})`);
+          
+          // Calculate gap in days
+          const gapDays = Math.floor((nextVisitStart.getTime() - currentVisitEnd.getTime()) / (1000 * 60 * 60 * 24));
+          console.log(`  Gap: ${gapDays} days`);
+          
+          if (gapDays > 0) {
+            console.log(`🏠 Gap detected! Creating "Returned Home" event for ${gapDays} days`);
+            const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
+            if (homeLocation) {
+              events.push({
+                id: `home-forced-${currentVisit.id}-${nextVisit.id}`,
+                date: nextVisitStart, // Sort by when they left home (next visit start)
+                startDate: currentVisitEnd, // When they returned home
+                endDate: nextVisitStart, // When they left home for next visit
+                type: 'home',
+                title: 'Returned Home',
+                description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(currentVisit.end_date || currentVisit.start_date)} to ${formatDateConsistent(nextVisit.start_date)}`,
+                location: homeLocation,
+                icon: React.createElement(Home),
+                color: 'primary'
+              });
+              console.log('✅ Forced gap-filling: Added "Returned Home" event');
+            } else {
+              console.log('❌ Home location not found for forced gap-filling');
+            }
+          } else {
+            console.log(`⏭️ No gap (${gapDays} days), skipping home event`);
+          }
+        }
 
         sortedVisits.forEach((visit, index) => {
           const visitLocation = allLocations.find(loc => loc.id === visit.location_id);
