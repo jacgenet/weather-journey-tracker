@@ -314,11 +314,14 @@ const PersonDashboard: React.FC = () => {
           }
         }
 
-        // Sort events by start date (newest first - current location at top)
-        // For home events, sort by when they started (returned home), not when they ended (left home)
+        // Sort events by chronological occurrence (newest first - current location at top)
+        // All events should be sorted by when they actually occurred in time
         events.sort((a, b) => {
-          const aDate = a.type === 'home' ? a.startDate : a.date;
-          const bDate = b.type === 'home' ? b.startDate : b.date;
+          // For home events, use the start date (when they returned home)
+          // For visits, use the start date (when the visit started)
+          // For birth, use the birth date
+          const aDate = a.startDate;
+          const bDate = b.startDate;
           return bDate.getTime() - aDate.getTime();
         });
         
