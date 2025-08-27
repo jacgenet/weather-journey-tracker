@@ -314,8 +314,13 @@ const PersonDashboard: React.FC = () => {
           }
         }
 
-        // Sort events by date (newest first - current location at top)
-        events.sort((a, b) => b.date.getTime() - a.date.getTime());
+        // Sort events by start date (newest first - current location at top)
+        // For home events, sort by when they started (returned home), not when they ended (left home)
+        events.sort((a, b) => {
+          const aDate = a.type === 'home' ? a.startDate : a.date;
+          const bDate = b.type === 'home' ? b.startDate : b.date;
+          return bDate.getTime() - aDate.getTime();
+        });
         
         console.log('📅 Final timeline events:', events);
         
