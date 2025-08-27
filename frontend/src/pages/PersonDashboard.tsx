@@ -128,7 +128,7 @@ const PersonDashboard: React.FC = () => {
               date: birthDate,
               startDate: birthDate,
               endDate: birthDate,
-              type: 'birth',
+              type: 'home',
               title: 'Started at Home',
               description: `Started living at: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(personData.birth_date)}`,
               location: homeLocation,
@@ -143,30 +143,8 @@ const PersonDashboard: React.FC = () => {
           parseDateConsistent(a.start_date).getTime() - parseDateConsistent(b.start_date).getTime()
         ) || [];
         
-        // Add "Started at Home" event for the period from birth to first visit
-        if (sortedVisits.length > 0 && personData.birth_date) {
-          const firstVisitStart = parseDateConsistent(sortedVisits[0].start_date);
-          const birthDate = parseDateConsistent(personData.birth_date);
-          
-          if (firstVisitStart > birthDate) {
-            const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
-            if (homeLocation) {
-              events.push({
-                id: 'home-initial',
-                date: firstVisitStart, // Sort by when they left home for first visit
-                startDate: birthDate, // When they started living at home
-                endDate: firstVisitStart, // When they left home for first visit
-                type: 'home',
-                title: 'Started at Home',
-                description: `Started living at: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(personData.birth_date)} to ${formatDateConsistent(sortedVisits[0].start_date)}`,
-                location: homeLocation,
-                icon: React.createElement(Home),
-                color: 'primary'
-              });
-              console.log('🏠 Added initial home event from birth to first visit');
-            }
-          }
-        }
+        // Note: Birth event already covers the period from birth to first visit
+        // No need to create a separate "home-initial" event
         
         console.log('📅 Sorted visits for timeline creation:', sortedVisits.map(v => ({
           id: v.id,
@@ -939,7 +917,7 @@ const PersonDashboard: React.FC = () => {
                     {/* Event Title and Description */}
                     <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                       <Typography variant="h6" component="span" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
-                        {event.type === 'home' && event.id === 'home-initial' ? 'Started at Home' :
+                        {event.type === 'home' && event.id === 'birth' ? 'Started at Home' :
                          event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
                          event.type === 'home' ? 'Returned Home' :
                          event.title}
@@ -949,8 +927,8 @@ const PersonDashboard: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <CalendarToday fontSize="small" color="action" />
                         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'medium' }}>
-                          {event.type === 'home' && event.id === 'home-initial' 
-                            ? `${formatDateConsistent(event.startDate.toISOString().split('T')[0])} - ${formatDateConsistent(event.endDate.toISOString().split('T')[0])}`
+                          {event.type === 'home' && event.id === 'birth'
+                            ? formatDateConsistent(event.startDate.toISOString().split('T')[0])
                             : event.type === 'home' && event.id.includes('home-final')
                             ? `Since ${formatDateConsistent(event.startDate.toISOString().split('T')[0])}`
                             : event.type === 'home'
