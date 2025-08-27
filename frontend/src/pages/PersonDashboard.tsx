@@ -545,10 +545,10 @@ const PersonDashboard: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <Warning color="warning" fontSize="small" />
           <Typography variant="caption" color="warning.main" sx={{ fontWeight: 'medium' }}>
-            Partial Data ({periodStats.coverage_percentage}% coverage)
+            Historical Data ({periodStats.coverage_percentage}% coverage)
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            ({event.startDate.getTime() === event.endDate.getTime() ? 'Single day' : 'Multi-day period'})
+            (Based on historical weather patterns for {periodStats.total_days} days)
           </Typography>
         </Box>
       );
@@ -558,10 +558,10 @@ const PersonDashboard: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <Info color="info" fontSize="small" />
           <Typography variant="caption" color="info.main" sx={{ fontWeight: 'medium' }}>
-            Estimated Data
+            Limited Data
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            (Based on {periodStats.total_days || 0} days around {event.startDate.getTime() === event.endDate.getTime() ? 'visit' : 'visit period'})
+            (Weather data not available for this period)
           </Typography>
         </Box>
       );

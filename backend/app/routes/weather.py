@@ -272,6 +272,65 @@ def get_weather_period_stats(location_id):
             WeatherRecord.recorded_at <= end_date
         ).all()
         
+        # If no database records, try to fetch historical weather data
+        if not weather_records:
+            print(f"🌤️ No database records found for {start_date.date()} to {end_date.date()}, fetching historical data...")
+            
+            try:
+                from app.services.weather_service import get_historical_weather_data
+                historical_weather = get_historical_weather_data(
+                    location.latitude, 
+                    location.longitude, 
+                    start_date, 
+                    end_date
+                )
+                
+                if historical_weather:
+                    print(f"✅ Fetched {len(historical_weather)} historical weather records")
+                    # Convert historical data to the format we need
+                    temperatures = [record['temperature'] for record in historical_weather]
+                    descriptions = [record['description'] for record in historical_weather if record['description']]
+                    
+                    # Calculate data coverage
+                    total_days = (end_date - start_date).days + 1
+                    days_with_data = len(historical_weather)
+                    coverage_percentage = (days_with_data / total_days) * 100 if total_days > 0 else 0
+                    
+                    # Determine data coverage quality
+                    if coverage_percentage >= 80:
+                        data_coverage = 'complete'
+                    elif coverage_percentage >= 50:
+                        data_coverage = 'partial'
+                    else:
+                        data_coverage = 'partial'  # Better than fallback
+                    
+                    return jsonify({
+                        'location': location.to_dict(),
+                        'period_stats': {
+                            'start_date': start_date.isoformat(),
+                            'end_date': end_date.isoformat(),
+                            'total_records': len(historical_weather),
+                            'average_temperature': round(statistics.mean(temperatures), 1),
+                            'highest_temperature': round(max(temperatures), 1),
+                            'lowest_temperature': round(min(temperatures), 1),
+                            'temperature_range': {
+                                'min': round(min(temperatures), 1),
+                                'max': round(max(temperatures), 1)
+                            },
+                            'most_common_conditions': [],
+                            'data_exists': True,
+                            'data_coverage': data_coverage,
+                            'days_with_data': days_with_data,
+                            'total_days': total_days,
+                            'coverage_percentage': round(coverage_percentage, 1)
+                        }
+                    }), 200
+                else:
+                    print("❌ Failed to fetch historical weather data")
+            except Exception as e:
+                print(f"❌ Error fetching historical weather: {e}")
+        
+        # If still no data, return fallback
         if not weather_records:
             return jsonify({
                 'location': location.to_dict(),
