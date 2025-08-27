@@ -273,15 +273,15 @@ const PersonDashboard: React.FC = () => {
             event.date.getTime() === lastVisitEnd.getTime()
           );
           
-          if (lastVisitEnd < today && !alreadyHasHomeEvent) {
+                      if (lastVisitEnd < today && !alreadyHasHomeEvent) {
             console.log('🏠 Adding final home event');
             const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
             if (homeLocation) {
               events.push({
                 id: `home-final-${lastVisit.id}`,
-                date: lastVisitEnd,
-                startDate: lastVisitEnd,
-                endDate: new Date(), // Currently ongoing, so end date is today
+                date: today,
+                startDate: lastVisitEnd, // When they returned home from last visit
+                endDate: today, // Currently ongoing, so end date is today
                 type: 'home',
                 title: 'Currently at Home',
                 description: `Currently at home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • since ${formatDateConsistent(lastVisit.end_date || lastVisit.start_date)}`,
