@@ -143,6 +143,31 @@ const PersonDashboard: React.FC = () => {
           parseDateConsistent(a.start_date).getTime() - parseDateConsistent(b.start_date).getTime()
         ) || [];
         
+        // Add "Started at Home" event for the period from birth to first visit
+        if (sortedVisits.length > 0 && personData.birth_date) {
+          const firstVisitStart = parseDateConsistent(sortedVisits[0].start_date);
+          const birthDate = parseDateConsistent(personData.birth_date);
+          
+          if (firstVisitStart > birthDate) {
+            const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
+            if (homeLocation) {
+              events.push({
+                id: 'home-initial',
+                date: firstVisitStart, // Sort by when they left home for first visit
+                startDate: birthDate, // When they started living at home
+                endDate: firstVisitStart, // When they left home for first visit
+                type: 'home',
+                title: 'Started at Home',
+                description: `Started living at: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(personData.birth_date)} to ${formatDateConsistent(sortedVisits[0].start_date)}`,
+                location: homeLocation,
+                icon: React.createElement(Home),
+                color: 'primary'
+              });
+              console.log('🏠 Added initial home event from birth to first visit');
+            }
+          }
+        }
+        
         console.log('📅 Sorted visits for timeline creation:', sortedVisits.map(v => ({
           id: v.id,
           start: v.start_date,
@@ -184,12 +209,12 @@ const PersonDashboard: React.FC = () => {
                   if (!existingHomeEvent) {
                     events.push({
                       id: `home-${previousVisit.id}-${visit.id}`,
-                      date: previousVisitEnd,
-                      startDate: previousVisitEnd,
-                      endDate: previousVisitEnd,
+                      date: currentVisitStart, // Sort by when they left home (next visit start)
+                      startDate: previousVisitEnd, // When they returned home
+                      endDate: currentVisitStart, // When they left home for next visit
                       type: 'home',
                       title: 'Returned Home',
-                      description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(previousVisit.end_date || previousVisit.start_date)}`,
+                      description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(previousVisit.end_date || previousVisit.start_date)} to ${formatDateConsistent(visit.start_date)}`,
                       location: homeLocation,
                       icon: React.createElement(Home),
                       color: 'primary'
@@ -796,6 +821,7 @@ const PersonDashboard: React.FC = () => {
                     gap: 2,
                     p: 3,
                     bgcolor: event.isCurrentLocation ? 'primary.50' : 
+                              event.type === 'home' && event.startDate.getTime() !== event.endDate.getTime() ? 'info.50' :
                               event.startDate.getTime() !== event.endDate.getTime() ? 'success.50' : 'grey.100',
                     borderRadius: 2,
                     boxShadow: event.isCurrentLocation ? 3 : 1,
@@ -866,6 +892,21 @@ const PersonDashboard: React.FC = () => {
                         />
                       )}
                       
+                      {/* Multi-day Home Event Badge */}
+                      {event.startDate.getTime() !== event.endDate.getTime() && event.type === 'home' && !event.isCurrentLocation && (
+                        <Chip
+                          icon={<CalendarToday fontSize="small" />}
+                          label="Multi-day"
+                          size="small"
+                          sx={{ 
+                            backgroundColor: 'info.main',
+                            color: 'white',
+                            fontWeight: 'medium',
+                            '& .MuiChip-icon': { color: 'white' }
+                          }}
+                        />
+                      )}
+                      
                       {/* Ongoing Event Badge */}
                       {event.isCurrentLocation && (
                         <Chip
@@ -909,11 +950,11 @@ const PersonDashboard: React.FC = () => {
                         <CalendarToday fontSize="small" color="action" />
                         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'medium' }}>
                           {event.type === 'home' && event.id === 'home-initial' 
-                            ? `Birth: ${formatDateConsistent(event.startDate.toISOString().split('T')[0])}`
+                            ? `${formatDateConsistent(event.startDate.toISOString().split('T')[0])} - ${formatDateConsistent(event.endDate.toISOString().split('T')[0])}`
                             : event.type === 'home' && event.id.includes('home-final')
                             ? `Since ${formatDateConsistent(event.startDate.toISOString().split('T')[0])}`
                             : event.type === 'home'
-                            ? `Returned: ${formatDateConsistent(event.startDate.toISOString().split('T')[0])}`
+                            ? `${formatDateConsistent(event.startDate.toISOString().split('T')[0])} - ${formatDateConsistent(event.endDate.toISOString().split('T')[0])}`
                             : event.startDate.getTime() === event.endDate.getTime() 
                             ? formatDateConsistent(event.startDate.toISOString().split('T')[0])
                             : `${formatDateConsistent(event.startDate.toISOString().split('T')[0])} - ${formatDateConsistent(event.endDate.toISOString().split('T')[0])}`
@@ -929,6 +970,20 @@ const PersonDashboard: React.FC = () => {
                             sx={{ 
                               borderColor: 'success.main',
                               color: 'success.main',
+                              fontSize: '0.7rem'
+                            }}
+                          />
+                        )}
+                        
+                        {/* Duration for multi-day home events */}
+                        {event.startDate.getTime() !== event.endDate.getTime() && event.type === 'home' && !event.isCurrentLocation && (
+                          <Chip
+                            label={`${Math.ceil((event.endDate.getTime() - event.startDate.getTime()) / (1000 * 60 * 60 * 24))} days`}
+                            size="small"
+                            variant="outlined"
+                            sx={{ 
+                              borderColor: 'info.main',
+                              color: 'info.main',
                               fontSize: '0.7rem'
                             }}
                           />
