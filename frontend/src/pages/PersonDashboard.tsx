@@ -192,19 +192,30 @@ const PersonDashboard: React.FC = () => {
             console.log(`🏠 Gap detected! Creating "Returned Home" event for ${gapDays} days`);
             const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
             if (homeLocation) {
-              events.push({
-                id: `home-forced-${currentVisit.id}-${nextVisit.id}`,
-                date: nextVisitStart, // Sort by when they left home (next visit start)
-                startDate: currentVisitEnd, // When they returned home
-                endDate: nextVisitStart, // When they left home for next visit
-                type: 'home',
-                title: 'Returned Home',
-                description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(currentVisit.end_date || currentVisit.start_date)} to ${formatDateConsistent(nextVisit.start_date)}`,
-                location: homeLocation,
-                icon: React.createElement(Home),
-                color: 'primary'
-              });
-              console.log('✅ Forced gap-filling: Added "Returned Home" event');
+              // Check if we already have a home event for this exact time period to prevent duplicates
+              const existingHomeEvent = events.find(event => 
+                event.type === 'home' && 
+                event.startDate.getTime() === currentVisitEnd.getTime() &&
+                event.endDate.getTime() === nextVisitStart.getTime()
+              );
+              
+              if (!existingHomeEvent) {
+                events.push({
+                  id: `home-forced-${currentVisit.id}-${nextVisit.id}`,
+                  date: nextVisitStart, // Sort by when they left home (next visit start)
+                  startDate: currentVisitEnd, // When they returned home
+                  endDate: nextVisitStart, // When they left home for next visit
+                  type: 'home',
+                  title: 'Returned Home',
+                  description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(currentVisit.end_date || currentVisit.start_date)} to ${formatDateConsistent(nextVisit.start_date)}`,
+                  location: homeLocation,
+                  icon: React.createElement(Home),
+                  color: 'primary'
+                });
+                console.log('✅ Forced gap-filling: Added "Returned Home" event');
+              } else {
+                console.log('⚠️ Home event already exists for this time period, skipping duplicate');
+              }
             } else {
               console.log('❌ Home location not found for forced gap-filling');
             }
