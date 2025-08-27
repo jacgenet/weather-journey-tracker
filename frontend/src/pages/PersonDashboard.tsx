@@ -159,16 +159,24 @@ const PersonDashboard: React.FC = () => {
           const visitLocation = allLocations.find(loc => loc.id === visit.location_id);
           console.log(`  ${index + 1}. ${visitLocation?.name || 'Unknown'}: ${visit.start_date}${visit.end_date && visit.end_date !== visit.start_date ? ` to ${visit.end_date}` : ''}`);
         });
+        
+        // Debug: Log the exact dates being used for gap calculation
+        console.log('🔍 Visit dates for gap calculation:');
+        sortedVisits.forEach((visit, index) => {
+          const visitLocation = allLocations.find(loc => loc.id === visit.location_id);
+          const startDate = parseDateConsistent(visit.start_date);
+          const endDate = visit.end_date ? parseDateConsistent(visit.end_date) : parseDateConsistent(visit.start_date);
+          console.log(`  ${index + 1}. ${visitLocation?.name || 'Unknown'}:`);
+          console.log(`    Start: ${visit.start_date} → ${startDate.toISOString()}`);
+          console.log(`    End: ${visit.end_date || visit.start_date} → ${endDate.toISOString()}`);
+        });
 
         sortedVisits.forEach((visit, index) => {
           const visitLocation = allLocations.find(loc => loc.id === visit.location_id);
           if (visitLocation) {
-            console.log(`📅 Processing visit ${visit.id}:`, {
-              start_date: visit.start_date,
-              end_date: visit.end_date,
-              parsed_start: parseDateConsistent(visit.start_date),
-              parsed_end: visit.end_date ? parseDateConsistent(visit.end_date) : 'No end date'
-            });
+            console.log(`📅 Processing visit ${index + 1}/${sortedVisits.length}: ${visitLocation.name} (ID: ${visit.id})`);
+            console.log(`  Raw dates: start=${visit.start_date}, end=${visit.end_date || 'same as start'}`);
+            console.log(`  Parsed dates: start=${parseDateConsistent(visit.start_date).toISOString()}, end=${visit.end_date ? parseDateConsistent(visit.end_date).toISOString() : 'same as start'}`);
             
             // Add home event before this visit (if not the first visit)
             if (index > 0) {
