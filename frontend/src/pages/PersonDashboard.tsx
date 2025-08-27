@@ -231,58 +231,10 @@ const PersonDashboard: React.FC = () => {
             console.log(`  Raw dates: start=${visit.start_date}, end=${visit.end_date || 'same as start'}`);
             console.log(`  Parsed dates: start=${parseDateConsistent(visit.start_date).toISOString()}, end=${visit.end_date ? parseDateConsistent(visit.end_date).toISOString() : 'same as start'}`);
             
-            // Add home event before this visit (if not the first visit)
+            // DISABLED: Original gap-filling logic - now handled by forced gap-filling above
+            // This prevents duplicate home events from being created
             if (index > 0) {
-              const previousVisit = sortedVisits[index - 1];
-              const previousVisitEnd = parseDateConsistent(previousVisit.end_date || previousVisit.start_date);
-              const currentVisitStart = parseDateConsistent(visit.start_date);
-              
-              console.log(`🔄 Visit ${index}: Previous visit ended ${previousVisitEnd.toISOString()}, current visit starts ${currentVisitStart.toISOString()}`);
-              
-              // Only create home event if there's at least a 1-day gap between visits
-              const daysBetweenVisits = Math.floor((currentVisitStart.getTime() - previousVisitEnd.getTime()) / (1000 * 60 * 60 * 24));
-              
-              console.log(`📊 Gap analysis for ${visitLocation?.name}:`);
-              console.log(`  Previous visit end: ${previousVisitEnd.toISOString()} (${formatDateConsistent(previousVisit.end_date || previousVisit.start_date)})`);
-              console.log(`  Current visit start: ${currentVisitStart.toISOString()} (${formatDateConsistent(visit.start_date)})`);
-              console.log(`  Days between: ${daysBetweenVisits}`);
-              console.log(`  Gap >= 1 day? ${daysBetweenVisits >= 1 ? 'YES' : 'NO'}`);
-              
-              if (daysBetweenVisits >= 1) {
-                console.log(`🏠 Gap of ${daysBetweenVisits} days detected, adding returned home event`);
-                const homeLocation = allLocations.find(loc => loc.id === personData.home_location_id);
-                if (homeLocation) {
-                  // Check if we already have a home event for this exact date
-                  const existingHomeEvent = events.find(event => 
-                    event.type === 'home' && 
-                    event.date.getTime() === previousVisitEnd.getTime()
-                  );
-                  
-                  console.log(`🔍 Checking for existing home event at ${previousVisitEnd.toISOString()}: ${existingHomeEvent ? 'FOUND' : 'NOT FOUND'}`);
-                  
-                  if (!existingHomeEvent) {
-                    events.push({
-                      id: `home-${previousVisit.id}-${visit.id}`,
-                      date: currentVisitStart, // Sort by when they left home (next visit start)
-                      startDate: previousVisitEnd, // When they returned home
-                      endDate: currentVisitStart, // When they left home for next visit
-                      type: 'home',
-                      title: 'Returned Home',
-                      description: `Returned home: ${homeLocation.name}, ${homeLocation.city}, ${homeLocation.country} • ${formatDateConsistent(previousVisit.end_date || previousVisit.start_date)} to ${formatDateConsistent(visit.start_date)}`,
-                      location: homeLocation,
-                      icon: React.createElement(Home),
-                      color: 'primary'
-                    });
-                    console.log('🏠 Added returned home event');
-                  } else {
-                    console.log('⚠️ Home event already exists for this date, skipping duplicate');
-                  }
-                } else {
-                  console.log('❌ Home location not found for gap-filling');
-                }
-              } else {
-                console.log(`⏭️ No significant gap between visits (${daysBetweenVisits} days), skipping home event`);
-              }
+              console.log(`⏭️ Skipping original gap-filling for visit ${index} (handled by forced gap-filling)`);
             }
 
            // Add the visit event
