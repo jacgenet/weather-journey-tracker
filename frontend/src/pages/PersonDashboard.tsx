@@ -865,7 +865,7 @@ const PersonDashboard: React.FC = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                       <Chip
                         icon={event.icon}
-                        label={event.type === 'home' && event.id === 'home-initial' ? 'Started at Home' : 
+                        label={event.type === 'home' && event.id === 'birth' ? 'Started at Home' : 
                                event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
                                event.type === 'home' ? 'Returned Home' :
                                formatDateRange(event.startDate, event.endDate)}
