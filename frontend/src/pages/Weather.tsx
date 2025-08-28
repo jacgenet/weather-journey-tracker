@@ -56,7 +56,6 @@ const Weather: React.FC = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Historical data upload states
-  const [uploadLocationId, setUploadLocationId] = useState<number | ''>('');
   const [jsonFile, setJsonFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -162,7 +161,7 @@ const Weather: React.FC = () => {
   };
 
      const handleUpload = async () => {
-     if (!uploadLocationId || !jsonFile) return;
+     if (!jsonFile) return;
 
      try {
        setUploading(true);
@@ -173,17 +172,16 @@ const Weather: React.FC = () => {
        const text = await jsonFile.text();
        const jsonData = JSON.parse(text);
 
-       const response = await weatherService.uploadHistoricalData(uploadLocationId, jsonData);
+       const response = await weatherService.uploadMultiLocationHistoricalData(jsonData);
        setUploadResult(response);
 
        if (response.success) {
          // Refresh dashboard data after successful upload
          await fetchDashboardData();
-         setMessage({ type: 'success', text: 'Historical weather data uploaded successfully!' });
+         setMessage({ type: 'success', text: 'Historical weather data uploaded successfully for multiple locations!' });
          
          // Reset form
          setJsonFile(null);
-         setUploadLocationId('');
        } else {
          setMessage({ type: 'error', text: response.error || 'Upload failed' });
        }
@@ -584,31 +582,14 @@ const Weather: React.FC = () => {
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <History fontSize="small" />
-              Upload Historical Weather Data
+              Upload Historical Weather Data (Multi-Location)
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Upload a JSON file with historical weather data to improve the accuracy of your weather statistics.
+              Upload a JSON file with historical weather data for multiple locations. The system will automatically match records to your existing locations based on city names and coordinates.
             </Typography>
             
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Select Location</InputLabel>
-                  <Select
-                    value={uploadLocationId}
-                    onChange={(e) => setUploadLocationId(e.target.value as number)}
-                    label="Select Location"
-                  >
-                    {locations.map((location) => (
-                      <MenuItem key={location.id} value={location.id}>
-                        {location.name}, {location.city}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12}>
                 <Button
                   variant="outlined"
                   component="label"
@@ -630,7 +611,7 @@ const Weather: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={handleUpload}
-                  disabled={!uploadLocationId || !jsonFile || uploading}
+                  disabled={!jsonFile || uploading}
                   fullWidth
                   startIcon={uploading ? <CircularProgress size={20} /> : <Upload />}
                 >
@@ -658,7 +639,8 @@ const Weather: React.FC = () => {
                 <Typography variant="body2" color="success.dark">
                   Total records: {uploadResult.upload_stats.total_records} | 
                   Stored: {uploadResult.upload_stats.stored_records} | 
-                  Skipped: {uploadResult.upload_stats.skipped_records}
+                  Skipped: {uploadResult.upload_stats.skipped_records} |
+                  Locations processed: {uploadResult.upload_stats.locations_processed}
                 </Typography>
                 {uploadResult.upload_stats.errors_count > 0 && (
                   <Typography variant="body2" color="warning.dark" sx={{ mt: 1 }}>
@@ -690,12 +672,15 @@ const Weather: React.FC = () => {
     "wind_speed": 5.2,
     "wind_direction": 180,
     "description": "Partly cloudy",
-    "icon": "02d"
+    "icon": "02d",
+    "city": "San Francisco",
+    "location_name": "Downtown Office"
   }
 ]`}
               </Typography>
               <Typography variant="caption" color="info.dark">
-                Required fields: date, temperature. Optional: humidity, pressure, wind_speed, wind_direction, description, icon.
+                Required fields: date, temperature. Optional: humidity, pressure, wind_speed, wind_direction, description, icon, city, location_name, latitude, longitude.
+                The system will automatically match records to your locations using city names and coordinates.
               </Typography>
             </Box>
           </CardContent>

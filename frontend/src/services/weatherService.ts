@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:9000';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -122,6 +122,19 @@ export interface HistoricalUploadResponse {
   error?: string;
 }
 
+export interface MultiLocationHistoricalUploadResponse {
+  success: boolean;
+  message?: string;
+  upload_stats?: {
+    total_records: number;
+    stored_records: number;
+    skipped_records: number;
+    locations_processed: number;
+    errors_count: number;
+  };
+  error?: string;
+}
+
 export const weatherService = {
   async getLocationWeather(locationId: number): Promise<WeatherResponse> {
     const response = await api.get(`/weather/${locationId}`);
@@ -155,6 +168,11 @@ export const weatherService = {
 
   async uploadHistoricalData(locationId: number, jsonData: any): Promise<HistoricalUploadResponse> {
     const response = await api.post(`/weather/upload-historical/${locationId}`, jsonData);
+    return response.data;
+  },
+
+  async uploadMultiLocationHistoricalData(jsonData: any): Promise<MultiLocationHistoricalUploadResponse> {
+    const response = await api.post(`/weather/upload-multi-location-historical`, jsonData);
     return response.data;
   },
 };

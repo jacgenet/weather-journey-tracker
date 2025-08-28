@@ -359,7 +359,7 @@ const PersonDashboard: React.FC = () => {
         const eventsWithWeather = await fetchWeatherData(events);
         
         // Fetch period weather statistics for timeline events
-        const eventsWithPeriodStats = await fetchPeriodWeatherStats(eventsWithWeather);
+        const eventsWithPeriodStats = await fetchPeriodWeatherStats(eventsWithWeather, personData);
         
         setTimelineEvents(eventsWithPeriodStats);
 
@@ -407,7 +407,7 @@ const PersonDashboard: React.FC = () => {
     }
   };
 
-  const fetchPeriodWeatherStats = async (events: TimelineEvent[]) => {
+  const fetchPeriodWeatherStats = async (events: TimelineEvent[], personData: PersonType) => {
     try {
       console.log('🔍 Starting fetchPeriodWeatherStats with events:', events);
       
@@ -431,15 +431,31 @@ const PersonDashboard: React.FC = () => {
                 startDate = new Date(eventDate.getTime() - 15 * 24 * 60 * 60 * 1000).toISOString(); // 15 days before
                 endDate = new Date(eventDate.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString(); // 15 days after
                 console.log(`🏠 Home event - using centered 30-day period: ${startDate} to ${endDate}`);
-              } else if (event.type === 'visit' && person && person.visits) {
+              } else if (event.type === 'visit' && personData && personData.visits) {
                 // For visit events, find the actual visit data to get start/end dates
-                const visit = person.visits.find(v => v.location_id === event.location!.id);
+                console.log(`🔍 DEBUG: Event type is 'visit', checking person.visits...`);
+                console.log(`🔍 DEBUG: person.visits:`, personData.visits);
+                console.log(`�� DEBUG: Looking for visit with location_id: ${event.location!.id}`);
+                
+                const visit = personData.visits.find(v => v.location_id === event.location!.id);
+                console.log(`🔍 DEBUG: Found visit:`, visit);
+                
                 if (visit) {
-                  startDate = parseDateConsistent(visit.start_date).toISOString();
-                  // Use EXACT visit dates - no buffer to match timeline display
-                  const visitEnd = visit.end_date ? parseDateConsistent(visit.end_date) : parseDateConsistent(visit.start_date);
-                  endDate = visitEnd.toISOString();
-                  console.log(`🎯 Visit event - using EXACT visit dates: ${startDate} to ${endDate}`);
+                  const startDateObj = parseDateConsistent(visit.start_date);
+                  const endDateObj = visit.end_date ? parseDateConsistent(visit.end_date) : parseDateConsistent(visit.start_date);
+                  
+                  // For single-day visits, ensure we cover the entire 24-hour period
+                  if (startDateObj.toDateString() === endDateObj.toDateString()) {
+                    // Same day - set start to beginning of day, end to end of day
+                    startDate = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), startDateObj.getDate(), 0, 0, 0).toISOString();
+                    endDate = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), endDateObj.getDate(), 23, 59, 59).toISOString();
+                  } else {
+                    // Different days - use exact dates
+                    startDate = startDateObj.toISOString();
+                    endDate = endDateObj.toISOString();
+                  }
+                  
+                  console.log(`🎯 Visit event - using date range: ${startDate} to ${endDate}`);
                 } else {
                   // Fallback to default period if visit not found
                   const eventDate = event.date; // event.date is already a Date object
@@ -449,6 +465,11 @@ const PersonDashboard: React.FC = () => {
                 }
               } else {
                 // Fallback to default period
+                console.log(`🔍 DEBUG: Event type is NOT 'visit' or person.visits not found`);
+                console.log(`🔍 DEBUG: Event type: ${event.type}`);
+                console.log(`🔍 DEBUG: person:`, personData);
+                console.log(`🔍 DEBUG: person.visits:`, personData?.visits);
+                
                 const eventDate = event.date; // event.date is already a Date object
                 startDate = new Date(eventDate.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
                 endDate = new Date(eventDate.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -1042,33 +1063,24 @@ const PersonDashboard: React.FC = () => {
                           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                             <Chip
                               icon={<Thermostat fontSize="small" />}
-                              label={`Avg: ${formatTemperature(event.periodWeatherStats.average_temperature)}`}
+                              label={`Avg: ${event.periodWeatherStats.average_temperature}°F`}
+                              color="success"
                               size="small"
-                              sx={{ 
-                                backgroundColor: 'success.main',
-                                color: 'white',
-                                '& .MuiChip-icon': { color: 'white' }
-                              }}
+                              sx={{ mr: 1, mb: 1 }}
                             />
                             <Chip
                               icon={<WbSunny fontSize="small" />}
-                              label={`High: ${formatTemperature(event.periodWeatherStats.highest_temperature)}`}
+                              label={`High: ${event.periodWeatherStats.highest_temperature}°F`}
+                              color="warning"
                               size="small"
-                              sx={{ 
-                                backgroundColor: 'warning.main',
-                                color: 'white',
-                                '& .MuiChip-icon': { color: 'white' }
-                              }}
+                              sx={{ mr: 1, mb: 1 }}
                             />
                             <Chip
                               icon={<Cloud fontSize="small" />}
-                              label={`Low: ${formatTemperature(event.periodWeatherStats.lowest_temperature)}`}
+                              label={`Low: ${event.periodWeatherStats.lowest_temperature}°F`}
+                              color="info"
                               size="small"
-                              sx={{ 
-                                backgroundColor: 'info.main',
-                                color: 'white',
-                                fontSize: '0.7rem'
-                              }}
+                              sx={{ mr: 1, mb: 1 }}
                             />
                           </Box>
                         </Box>

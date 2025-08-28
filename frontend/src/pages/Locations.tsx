@@ -124,22 +124,15 @@ const Locations: React.FC = () => {
         setSelectedCountryId(country.id);
         fetchStatesByCountry(country.id);
         
-        // Try to find state if we have states loaded
+              // Wait for states to load, then try to find the correct state
+      // We'll handle state/city selection after states are fetched
+      setTimeout(() => {
         if (states.length > 0) {
-          const state = states.find(s => s.name === location.city);
-          if (state) {
-            setSelectedStateId(state.id);
-            fetchCitiesByState(country.id, state.id);
-            
-            // Try to find city if we have cities loaded
-            if (cities.length > 0) {
-              const city = cities.find(c => c.name === location.city);
-              if (city) {
-                setSelectedCityId(city.id);
-              }
-            }
-          }
+          // Don't auto-select state to avoid confusion with city names
+          // The user can manually select the correct state if needed
+          console.log('States loaded, but not auto-selecting to avoid city/state confusion');
         }
+      }, 100);
       }
     } else {
       setEditingLocation(null);

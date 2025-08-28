@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models.location import Location
 from app.models.weather_record import WeatherRecord
-from app.services.weather_service import get_weather_data, get_weather_history, upload_historical_weather_data
+from app.services.weather_service import get_weather_data, get_weather_history, upload_historical_weather_data, upload_multi_location_historical_data
 from datetime import datetime, timedelta
 import statistics
 import json
@@ -350,8 +350,16 @@ def get_weather_period_stats(location_id):
             }), 200
         
         # Calculate statistics for the period
-        temperatures = [record.temperature for record in weather_records]
+        temperatures = [record.temperature_fahrenheit() for record in weather_records]
         descriptions = [record.description for record in weather_records if record.description]
+        
+        # Debug: Log the temperature conversion
+        print(f"🌡️ DEBUG: Raw Celsius temperatures: {[record.temperature for record in weather_records[:5]]}")
+        print(f"🌡️ DEBUG: Converted Fahrenheit temperatures: {temperatures[:5]}")
+        print(f"🌡️ DEBUG: Temperature count: {len(temperatures)}")
+        print(f"🌡️ DEBUG: Min temp: {min(temperatures) if temperatures else 'None'}")
+        print(f"🌡️ DEBUG: Max temp: {max(temperatures) if temperatures else 'None'}")
+        print(f"🌡️ DEBUG: Avg temp: {statistics.mean(temperatures) if temperatures else 'None'}")
         
         # Calculate data coverage percentage
         total_days = (end_date - start_date).days + 1
@@ -449,3 +457,46 @@ def upload_historical_weather(location_id):
     except Exception as e:
         print(f"Error in upload_historical_weather: {e}")
         return jsonify({'error': 'Failed to upload historical weather data'}), 500 
+
+@weather_bp.route('/upload-multi-location-historical', methods=['POST'])
+@jwt_required()
+def upload_multi_location_historical_weather():
+    """Upload historical weather data from JSON file for multiple locations"""
+    current_user_id = get_jwt_identity()
+    
+    try:
+        # Get JSON data from request
+        if not request.is_json:
+            return jsonify({'error': 'Request must contain JSON data'}), 400
+        
+        json_data = request.get_json()
+        
+        if not json_data:
+            return jsonify({'error': 'No JSON data provided'}), 400
+        
+        # Convert JSON data to string for processing
+        json_string = json.dumps(json_data)
+        
+        # Upload and store historical weather data for multiple locations
+        result = upload_multi_location_historical_data(current_user_id, json_string)
+        
+        if result['success']:
+            return jsonify({
+                'message': 'Historical weather data uploaded successfully for multiple locations',
+                'upload_stats': {
+                    'total_records': result['total_records'],
+                    'stored_records': result['stored_records'],
+                    'skipped_records': result['skipped_records'],
+                    'locations_processed': result['locations_processed'],
+                    'errors_count': len(result['errors'])
+                }
+            }), 200
+        else:
+            return jsonify({
+                'error': 'Failed to upload historical weather data',
+                'details': result['error']
+            }), 400
+            
+    except Exception as e:
+        print(f"Error in upload_multi_location_historical_weather: {e}")
+        return jsonify({'error': 'Failed to upload historical weather data'}), 500
