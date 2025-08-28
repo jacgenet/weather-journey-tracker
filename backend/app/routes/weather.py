@@ -3,9 +3,10 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models.location import Location
 from app.models.weather_record import WeatherRecord
-from app.services.weather_service import get_weather_data, get_weather_history
+from app.services.weather_service import get_weather_data, get_weather_history, upload_historical_weather_data
 from datetime import datetime, timedelta
 import statistics
+import json
 
 weather_bp = Blueprint('weather', __name__)
 
@@ -398,4 +399,53 @@ def get_weather_period_stats(location_id):
         
     except Exception as e:
         print(f"Error in get_weather_period_stats: {e}")
-        return jsonify({'error': 'Failed to fetch period weather statistics'}), 500 
+        return jsonify({'error': 'Failed to fetch period weather statistics'}), 500
+
+@weather_bp.route('/upload-historical/<int:location_id>', methods=['POST'])
+@jwt_required()
+def upload_historical_weather(location_id):
+    """Upload historical weather data from JSON file for a specific location"""
+    current_user_id = get_jwt_identity()
+    
+    try:
+        # Verify location exists and belongs to user
+        location = Location.query.filter_by(id=location_id, user_id=current_user_id).first()
+        
+        if not location:
+            return jsonify({'error': 'Location not found'}), 404
+        
+        # Get JSON data from request
+        if not request.is_json:
+            return jsonify({'error': 'Request must contain JSON data'}), 400
+        
+        json_data = request.get_json()
+        
+        if not json_data:
+            return jsonify({'error': 'No JSON data provided'}), 400
+        
+        # Convert JSON data to string for processing
+        json_string = json.dumps(json_data)
+        
+        # Upload and store historical weather data
+        result = upload_historical_weather_data(location_id, json_string)
+        
+        if result['success']:
+            return jsonify({
+                'message': 'Historical weather data uploaded successfully',
+                'location': location.to_dict(),
+                'upload_stats': {
+                    'total_records': result['total_records'],
+                    'stored_records': result['stored_records'],
+                    'skipped_records': result['skipped_records'],
+                    'errors_count': len(result['errors'])
+                }
+            }), 200
+        else:
+            return jsonify({
+                'error': 'Failed to upload historical weather data',
+                'details': result['error']
+            }), 400
+            
+    except Exception as e:
+        print(f"Error in upload_historical_weather: {e}")
+        return jsonify({'error': 'Failed to upload historical weather data'}), 500 

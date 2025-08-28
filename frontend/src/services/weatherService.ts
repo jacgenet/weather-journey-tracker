@@ -110,6 +110,18 @@ export interface DashboardData {
   }[];
 }
 
+export interface HistoricalUploadResponse {
+  success: boolean;
+  message?: string;
+  upload_stats?: {
+    total_records: number;
+    stored_records: number;
+    skipped_records: number;
+    errors_count: number;
+  };
+  error?: string;
+}
+
 export const weatherService = {
   async getLocationWeather(locationId: number): Promise<WeatherResponse> {
     const response = await api.get(`/weather/${locationId}`);
@@ -139,5 +151,10 @@ export const weatherService = {
   async refreshWeatherData(locationId: number): Promise<WeatherData> {
     const response = await api.post(`/weather/refresh/${locationId}`);
     return response.data.weather;
+  },
+
+  async uploadHistoricalData(locationId: number, jsonData: any): Promise<HistoricalUploadResponse> {
+    const response = await api.post(`/weather/upload-historical/${locationId}`, jsonData);
+    return response.data;
   },
 };

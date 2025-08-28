@@ -1,13 +1,133 @@
 import requests
 import os
+import json
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
+from app import db
+from app.models.weather_record import WeatherRecord
 
 class WeatherService:
     def __init__(self):
         self.api_key = os.environ.get('OPENWEATHER_API_KEY')
         self.base_url = 'https://api.openweathermap.org/data/2.5'
         
+    def upload_historical_data(self, location_id: int, json_data: str) -> Dict:
+        """Parse and store historical weather data from uploaded JSON file"""
+        try:
+            # Parse JSON data
+            weather_data = json.loads(json_data)
+            
+            if not isinstance(weather_data, list):
+                return {'success': False, 'error': 'JSON data must be a list of weather records'}
+            
+            # Track statistics
+            total_records = len(weather_data)
+            stored_records = 0
+            skipped_records = 0
+            errors = []
+            
+            print(f"📊 Processing {total_records} historical weather records for location {location_id}")
+            
+            for i, record in enumerate(weather_data):
+                try:
+                    # Validate required fields
+                    if not all(key in record for key in ['date', 'temperature']):
+                        errors.append(f"Record {i}: Missing required fields (date, temperature)")
+                        skipped_records += 1
+                        continue
+                    
+                    # Parse date (handle multiple possible formats)
+                    date_str = record['date']
+                    parsed_date = self._parse_date_string(date_str)
+                    
+                    if not parsed_date:
+                        errors.append(f"Record {i}: Invalid date format: {date_str}")
+                        skipped_records += 1
+                        continue
+                    
+                    # Check if record already exists for this date and location
+                    existing_record = WeatherRecord.query.filter_by(
+                        location_id=location_id,
+                        recorded_at=parsed_date
+                    ).first()
+                    
+                    if existing_record:
+                        print(f"⏭️ Skipping duplicate record for {parsed_date.date()}")
+                        skipped_records += 1
+                        continue
+                    
+                    # Create new weather record
+                    weather_record = WeatherRecord(
+                        location_id=location_id,
+                        temperature=float(record['temperature']),
+                        humidity=float(record.get('humidity', 0)) if record.get('humidity') else None,
+                        pressure=float(record.get('pressure', 0)) if record.get('pressure') else None,
+                        wind_speed=float(record.get('wind_speed', 0)) if record.get('wind_speed') else None,
+                        wind_direction=float(record.get('wind_direction', 0)) if record.get('wind_direction') else None,
+                        description=record.get('description', 'Historical data'),
+                        icon=record.get('icon', '01d'),
+                        recorded_at=parsed_date
+                    )
+                    
+                    db.session.add(weather_record)
+                    stored_records += 1
+                    
+                    # Commit every 100 records to avoid memory issues
+                    if stored_records % 100 == 0:
+                        db.session.commit()
+                        print(f"💾 Committed {stored_records} records so far...")
+                    
+                except Exception as e:
+                    errors.append(f"Record {i}: {str(e)}")
+                    skipped_records += 1
+                    continue
+            
+            # Final commit for remaining records
+            db.session.commit()
+            
+            print(f"✅ Successfully stored {stored_records} historical weather records")
+            print(f"⏭️ Skipped {skipped_records} records")
+            
+            if errors:
+                print(f"⚠️ {len(errors)} errors encountered:")
+                for error in errors[:5]:  # Show first 5 errors
+                    print(f"  - {error}")
+                if len(errors) > 5:
+                    print(f"  ... and {len(errors) - 5} more errors")
+            
+            return {
+                'success': True,
+                'total_records': total_records,
+                'stored_records': stored_records,
+                'skipped_records': skipped_records,
+                'errors': errors
+            }
+            
+        except json.JSONDecodeError as e:
+            return {'success': False, 'error': f'Invalid JSON format: {str(e)}'}
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'error': f'Failed to process historical data: {str(e)}'}
+    
+    def _parse_date_string(self, date_str: str) -> Optional[datetime]:
+        """Parse date string in various formats"""
+        date_formats = [
+            '%Y-%m-%d',           # 2024-01-15
+            '%Y-%m-%d %H:%M:%S',  # 2024-01-15 14:30:00
+            '%Y-%m-%dT%H:%M:%S',  # 2024-01-15T14:30:00
+            '%Y-%m-%dT%H:%M:%SZ', # 2024-01-15T14:30:00Z
+            '%m/%d/%Y',           # 01/15/2024
+            '%d/%m/%Y',           # 15/01/2024
+        ]
+        
+        for fmt in date_formats:
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+        
+        return None
+
     def get_current_weather(self, lat: float, lon: float) -> Optional[Dict]:
         """Get current weather data from OpenWeatherMap API"""
         if not self.api_key:
@@ -272,4 +392,8 @@ def get_weather_history(lat: float, lon: float, days: int = 5) -> List[Dict]:
 
 def get_historical_weather_data(lat: float, lon: float, start_date: datetime, end_date: datetime) -> List[Dict]:
     """Get historical weather data for given coordinates and date range"""
-    return weather_service.get_historical_weather(lat, lon, start_date, end_date) 
+    return weather_service.get_historical_weather(lat, lon, start_date, end_date)
+
+def upload_historical_weather_data(location_id: int, json_data: str) -> Dict:
+    """Upload and store historical weather data from JSON file"""
+    return weather_service.upload_historical_data(location_id, json_data) 

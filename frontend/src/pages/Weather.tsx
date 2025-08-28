@@ -37,6 +37,8 @@ import {
   Thermostat,
   Visibility,
   Compress,
+  History,
+  Upload,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -52,6 +54,14 @@ const Weather: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  // Historical data upload states
+  const [uploadLocationId, setUploadLocationId] = useState<number | ''>('');
+  const [jsonFile, setJsonFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadResult, setUploadResult] = useState<any>(null);
+  
   const { user } = useAuth();
   const { preferences, formatTemperature } = usePreferences();
 
@@ -143,6 +153,53 @@ const Weather: React.FC = () => {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setJsonFile(event.target.files[0]);
+    }
+  };
+
+     const handleUpload = async () => {
+     if (!uploadLocationId || !jsonFile) return;
+
+     try {
+       setUploading(true);
+       setUploadProgress(0);
+       setUploadResult(null);
+
+       // Read and parse the JSON file
+       const text = await jsonFile.text();
+       const jsonData = JSON.parse(text);
+
+       const response = await weatherService.uploadHistoricalData(uploadLocationId, jsonData);
+       setUploadResult(response);
+
+       if (response.success) {
+         // Refresh dashboard data after successful upload
+         await fetchDashboardData();
+         setMessage({ type: 'success', text: 'Historical weather data uploaded successfully!' });
+         
+         // Reset form
+         setJsonFile(null);
+         setUploadLocationId('');
+       } else {
+         setMessage({ type: 'error', text: response.error || 'Upload failed' });
+       }
+     } catch (error: any) {
+       console.error('Failed to upload historical weather data:', error);
+       setMessage({ 
+         type: 'error', 
+         text: error.response?.data?.error || 'Failed to upload historical weather data' 
+       });
+     } finally {
+       setUploading(false);
+     }
+   };
+
+  const clearUploadResult = () => {
+    setUploadResult(null);
   };
 
   const getWeatherIcon = (icon?: string, description?: string) => {
@@ -521,6 +578,128 @@ const Weather: React.FC = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Historical Weather Data Upload */}
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <History fontSize="small" />
+              Upload Historical Weather Data
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Upload a JSON file with historical weather data to improve the accuracy of your weather statistics.
+            </Typography>
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Select Location</InputLabel>
+                  <Select
+                    value={uploadLocationId}
+                    onChange={(e) => setUploadLocationId(e.target.value as number)}
+                    label="Select Location"
+                  >
+                    {locations.map((location) => (
+                      <MenuItem key={location.id} value={location.id}>
+                        {location.name}, {location.city}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  fullWidth
+                  startIcon={<Upload />}
+                  disabled={uploading}
+                >
+                  {jsonFile ? jsonFile.name : 'Choose JSON File'}
+                  <input
+                    type="file"
+                    hidden
+                    accept=".json"
+                    onChange={handleFileSelect}
+                  />
+                </Button>
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Button
+                  variant="contained"
+                  onClick={handleUpload}
+                  disabled={!uploadLocationId || !jsonFile || uploading}
+                  fullWidth
+                  startIcon={uploading ? <CircularProgress size={20} /> : <Upload />}
+                >
+                  {uploading ? 'Uploading...' : 'Upload Historical Data'}
+                </Button>
+              </Grid>
+            </Grid>
+
+            {/* Upload Progress */}
+            {uploading && (
+              <Box sx={{ mt: 2 }}>
+                <LinearProgress variant="determinate" value={uploadProgress} />
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Uploading... {uploadProgress}%
+                </Typography>
+              </Box>
+            )}
+
+            {/* Upload Result */}
+            {uploadResult && (
+              <Box sx={{ mt: 3, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+                <Typography variant="h6" color="success.dark" gutterBottom>
+                  Upload Successful!
+                </Typography>
+                <Typography variant="body2" color="success.dark">
+                  Total records: {uploadResult.upload_stats.total_records} | 
+                  Stored: {uploadResult.upload_stats.stored_records} | 
+                  Skipped: {uploadResult.upload_stats.skipped_records}
+                </Typography>
+                {uploadResult.upload_stats.errors_count > 0 && (
+                  <Typography variant="body2" color="warning.dark" sx={{ mt: 1 }}>
+                    {uploadResult.upload_stats.errors_count} records had errors
+                  </Typography>
+                )}
+                <Button
+                  size="small"
+                  onClick={clearUploadResult}
+                  sx={{ mt: 1 }}
+                >
+                  Clear
+                </Button>
+              </Box>
+            )}
+
+            {/* File Format Instructions */}
+            <Box sx={{ mt: 3, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+              <Typography variant="subtitle2" color="info.dark" gutterBottom>
+                Expected JSON Format:
+              </Typography>
+              <Typography variant="body2" color="info.dark" component="pre" sx={{ fontSize: '0.8rem', overflow: 'auto' }}>
+{`[
+  {
+    "date": "2024-01-15",
+    "temperature": 22.5,
+    "humidity": 65,
+    "pressure": 1013,
+    "wind_speed": 5.2,
+    "wind_direction": 180,
+    "description": "Partly cloudy",
+    "icon": "02d"
+  }
+]`}
+              </Typography>
+              <Typography variant="caption" color="info.dark">
+                Required fields: date, temperature. Optional: humidity, pressure, wind_speed, wind_direction, description, icon.
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
 
         {/* Loading State */}
         {loading && (
