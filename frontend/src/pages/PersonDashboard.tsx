@@ -692,9 +692,9 @@ const PersonDashboard: React.FC = () => {
               </Box>
               <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
                 {timelineEvents.some(e => e.periodWeatherStats?.data_exists) 
-                  ? formatTemperature(Math.max(...timelineEvents
+                  ? `${Math.max(...timelineEvents
                       .filter(e => e.periodWeatherStats?.data_exists)
-                      .map(e => e.periodWeatherStats!.highest_temperature)))
+                      .map(e => e.periodWeatherStats!.highest_temperature)).toFixed(1)}°F`
                   : 'N/A'
                 }
               </Typography>
@@ -717,9 +717,9 @@ const PersonDashboard: React.FC = () => {
                 </Box>
               <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
                 {timelineEvents.some(e => e.periodWeatherStats?.data_exists) 
-                  ? formatTemperature(Math.min(...timelineEvents
+                  ? `${Math.min(...timelineEvents
                       .filter(e => e.periodWeatherStats?.data_exists)
-                      .map(e => e.periodWeatherStats!.lowest_temperature)))
+                      .map(e => e.periodWeatherStats!.lowest_temperature)).toFixed(1)}°F`
                   : 'N/A'
                 }
               </Typography>
@@ -748,7 +748,7 @@ const PersonDashboard: React.FC = () => {
                     
                     const totalTemp = eventsWithData.reduce((sum, e) => sum + e.periodWeatherStats!.average_temperature, 0);
                     const avgTemp = totalTemp / eventsWithData.length;
-                    return formatTemperature(Math.round(avgTemp));
+                    return `${Math.round(avgTemp)}°F`;
                   })()}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
