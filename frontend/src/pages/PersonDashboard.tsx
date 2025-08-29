@@ -425,12 +425,12 @@ const PersonDashboard: React.FC = () => {
               let endDate: string;
               
               if (event.type === 'home') {
-                // For home events, use a more realistic period that includes actual weather data
+                // For home events, use a more focused period that's realistic for "home" weather
                 const eventDate = event.date; // event.date is already a Date object
-                // Use a 30-day period centered on the event date to match realistic expectations
-                startDate = new Date(eventDate.getTime() - 15 * 24 * 60 * 60 * 1000).toISOString(); // 15 days before
-                endDate = new Date(eventDate.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString(); // 15 days after
-                console.log(`🏠 Home event - using centered 30-day period: ${startDate} to ${endDate}`);
+                // Use a 7-day period centered on the event date for more realistic home weather
+                startDate = new Date(eventDate.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(); // 3 days before
+                endDate = new Date(eventDate.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(); // 3 days after
+                console.log(`🏠 Home event - using focused 7-day period: ${startDate} to ${endDate}`);
               } else if (event.type === 'visit' && personData && personData.visits) {
                 // For visit events, find the actual visit data to get start/end dates
                 console.log(`🔍 DEBUG: Event type is 'visit', checking person.visits...`);
