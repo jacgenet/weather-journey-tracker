@@ -687,16 +687,19 @@ const PersonDashboard: React.FC = () => {
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
-                <WbSunny color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6">Countries Visited</Typography>
+                <WbSunny color="warning" sx={{ mr: 1 }} />
+                <Typography variant="h6">Highest Temperature</Typography>
               </Box>
-              <Typography variant="h4" color="primary">
-                {countUniqueCountries(
-                  person.visits?.map(v => {
-                    const loc = locations.find(l => l.id === v.location_id);
-                    return loc?.country;
-                  }).filter((country): country is string => Boolean(country)) || []
-                )}
+              <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
+                {timelineEvents.some(e => e.periodWeatherStats?.data_exists) 
+                  ? formatTemperature(Math.max(...timelineEvents
+                      .filter(e => e.periodWeatherStats?.data_exists)
+                      .map(e => e.periodWeatherStats!.highest_temperature)))
+                  : 'N/A'
+                }
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Across all visits
               </Typography>
             </CardContent>
           </Card>
@@ -708,20 +711,134 @@ const PersonDashboard: React.FC = () => {
             color: 'white'
           }}>
             <CardContent>
-              <Box display="flex" alignItems="center" mb={2}>
-                <WbSunny sx={{ mr: 1, color: 'white' }} />
-                <Typography variant="h6" sx={{ color: 'white' }}>Weather Records</Typography>
-              </Box>
+                              <Box display="flex" alignItems="center" mb={2}>
+                  <Cloud sx={{ mr: 1, color: 'white' }} />
+                  <Typography variant="h6" sx={{ color: 'white' }}>Lowest Temperature</Typography>
+                </Box>
               <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
-                {timelineEvents.filter(e => e.weather).length}
+                {timelineEvents.some(e => e.periodWeatherStats?.data_exists) 
+                  ? formatTemperature(Math.min(...timelineEvents
+                      .filter(e => e.periodWeatherStats?.data_exists)
+                      .map(e => e.periodWeatherStats!.lowest_temperature)))
+                  : 'N/A'
+                }
               </Typography>
               <Typography variant="body2" sx={{ color: 'white', opacity: 0.9 }}>
-                Temperature & conditions tracked
+                Across all visits
               </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
+
+      {/* Additional Weather Stats Row */}
+      {timelineEvents.some(e => e.periodWeatherStats?.data_exists) && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <Thermostat color="success" sx={{ mr: 1 }} />
+                  <Typography variant="h6" color="success.main">Average Temperature</Typography>
+                </Box>
+                <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
+                  {(() => {
+                    const eventsWithData = timelineEvents.filter(e => e.periodWeatherStats?.data_exists);
+                    if (eventsWithData.length === 0) return 'N/A';
+                    
+                    const totalTemp = eventsWithData.reduce((sum, e) => sum + e.periodWeatherStats!.average_temperature, 0);
+                    const avgTemp = totalTemp / eventsWithData.length;
+                    return formatTemperature(Math.round(avgTemp));
+                  })()}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Across all visits
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <WbSunny color="info" sx={{ mr: 1 }} />
+                  <Typography variant="h6" color="info.main">Weather Records</Typography>
+                </Box>
+                <Typography variant="h4" color="info.main" sx={{ fontWeight: 'bold' }}>
+                  {timelineEvents.reduce((total, e) => total + (e.periodWeatherStats?.total_records || 0), 0)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Total weather data points
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ bgcolor: 'secondary.50', border: '1px solid', borderColor: 'secondary.200' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <CheckCircle color="secondary" sx={{ mr: 1 }} />
+                  <Typography variant="h6" color="secondary.main">Data Coverage</Typography>
+                </Box>
+                <Typography variant="h4" color="secondary.main" sx={{ fontWeight: 'bold' }}>
+                  {(() => {
+                    const eventsWithData = timelineEvents.filter(e => e.periodWeatherStats?.data_exists);
+                    if (eventsWithData.length === 0) return '0%';
+                    
+                    const completeData = eventsWithData.filter(e => e.periodWeatherStats!.data_coverage === 'complete').length;
+                    const percentage = Math.round((completeData / eventsWithData.length) * 100);
+                    return `${percentage}%`;
+                  })()}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Complete weather data
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.200' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <Visibility color="warning" sx={{ mr: 1 }} />
+                  <Typography variant="h6" color="warning.main">Active Visits</Typography>
+                </Box>
+                <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
+                  {timelineEvents.filter(e => e.periodWeatherStats?.data_exists).length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  With weather data
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <LocationOn color="primary" sx={{ mr: 1 }} />
+                  <Typography variant="h6" color="primary.main">Countries Visited</Typography>
+                </Box>
+                <Typography variant="h4" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                  {countUniqueCountries(
+                    person.visits?.map(v => {
+                      const loc = locations.find(l => l.id === v.location_id);
+                      return loc?.country;
+                    }).filter((country): country is string => Boolean(country)) || []
+                  )}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Unique countries
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
 
       {/* Weather Summary */}
       {timelineEvents.some(e => e.weather) && (
