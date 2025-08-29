@@ -656,6 +656,30 @@ const PersonDashboard: React.FC = () => {
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" mb={2}>
+                <Person color="primary" sx={{ mr: 1 }} />
+                <Typography variant="h6" color="primary.main">Days Alive</Typography>
+              </Box>
+              <Typography variant="h4" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                {person.birth_date ? (() => {
+                  const birth = parseDateConsistent(person.birth_date);
+                  const today = new Date();
+                  const timeDiff = today.getTime() - birth.getTime();
+                  const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                  return daysDiff.toLocaleString();
+                })() : 'N/A'
+                }
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Since {person.birth_date ? formatDateConsistent(person.birth_date) : 'birth'}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
@@ -669,7 +693,7 @@ const PersonDashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
@@ -683,7 +707,7 @@ const PersonDashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
@@ -705,16 +729,16 @@ const PersonDashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6} md={2.4}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #ff9800 0%, #ff5722 100%)',
             color: 'white'
           }}>
             <CardContent>
-                              <Box display="flex" alignItems="center" mb={2}>
-                  <Cloud sx={{ mr: 1, color: 'white' }} />
-                  <Typography variant="h6" sx={{ color: 'white' }}>Lowest Temperature</Typography>
-                </Box>
+              <Box display="flex" alignItems="center" mb={2}>
+                <Cloud sx={{ mr: 1, color: 'white' }} />
+                <Typography variant="h6" sx={{ color: 'white' }}>Lowest Temperature</Typography>
+              </Box>
               <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold' }}>
                 {timelineEvents.some(e => e.periodWeatherStats?.data_exists) 
                   ? `${Math.min(...timelineEvents
