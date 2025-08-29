@@ -840,56 +840,6 @@ const PersonDashboard: React.FC = () => {
         </Grid>
       )}
 
-      {/* Weather Summary */}
-      {timelineEvents.some(e => e.weather) && (
-        <Card sx={{ mb: 4 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-              <WbSunny color="warning" />
-              Weather Summary
-            </Typography>
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.50', borderRadius: 2 }}>
-                  <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
-                    {formatTemperature(Math.max(...timelineEvents.filter(e => e.weather).map(e => e.weather!.temperature)))}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">Highest Temperature</Typography>
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'info.50', borderRadius: 2 }}>
-                  <Typography variant="h4" color="info.main" sx={{ fontWeight: 'bold' }}>
-                    {formatTemperature(Math.min(...timelineEvents.filter(e => e.weather).map(e => e.weather!.temperature)))}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">Lowest Temperature</Typography>
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.50', borderRadius: 2 }}>
-                  <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
-                    {formatTemperature(Math.round(timelineEvents.filter(e => e.weather).reduce((sum, e) => sum + e.weather!.temperature, 0) / timelineEvents.filter(e => e.weather).length))}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">Average Temperature</Typography>
-                </Box>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'secondary.50', borderRadius: 2 }}>
-                  <Typography variant="h4" color="secondary.main" sx={{ fontWeight: 'bold' }}>
-                    {new Set(timelineEvents.filter(e => e.weather).map(e => e.weather!.description)).size}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">Weather Conditions</Typography>
-                </Box>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Life Timeline */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
