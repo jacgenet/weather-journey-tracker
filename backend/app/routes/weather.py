@@ -298,8 +298,9 @@ def get_weather_period_stats(location_id):
                     coverage_percentage = (days_with_data / total_days) * 100 if total_days > 0 else 0
                     
                     # Determine data coverage quality
+                    # Mock data should never be marked as "complete" or "verified"
                     if coverage_percentage >= 80:
-                        data_coverage = 'complete'
+                        data_coverage = 'partial'  # Mock data is always partial
                     elif coverage_percentage >= 50:
                         data_coverage = 'partial'
                     else:

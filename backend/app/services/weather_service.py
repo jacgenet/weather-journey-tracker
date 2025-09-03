@@ -639,6 +639,12 @@ class WeatherService:
     
     def get_historical_weather(self, lat: float, lon: float, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Get historical weather data from OpenWeatherMap API for a specific date range"""
+        # Check if dates are in the future
+        now = datetime.utcnow()
+        if start_date > now or end_date > now:
+            print(f"⚠️ Requested dates are in the future: {start_date.date()} to {end_date.date()}")
+            return []  # Return empty list for future dates
+        
         if not self.api_key:
             return self._get_mock_historical_data(lat, lon, start_date, end_date)
         
@@ -740,13 +746,24 @@ class WeatherService:
         """Generate mock weather data for development"""
         import random
         
-        # Generate realistic weather based on coordinates
-        base_temp = 20  # Base temperature in Celsius
+        # Generate realistic weather based on coordinates and season
+        # More realistic temperature calculation
+        if lat > 0:  # Northern hemisphere
+            # Summer temperatures (June-August)
+            if 30 <= lat <= 50:  # Mediterranean/Europe region
+                base_temp = 25  # 25°C (77°F) base for summer
+                temp_variation = random.uniform(-3, 3)
+            elif 40 <= lat <= 60:  # Northern Europe
+                base_temp = 20  # 20°C (68°F) base for summer
+                temp_variation = random.uniform(-5, 5)
+            else:
+                base_temp = 15  # 15°C (59°F) for other regions
+                temp_variation = random.uniform(-5, 5)
+        else:  # Southern hemisphere
+            base_temp = 20
+            temp_variation = random.uniform(-5, 5)
         
-        # Adjust temperature based on latitude (colder at poles)
-        lat_factor = abs(lat) / 90
-        temp_variation = random.uniform(-5, 5)
-        temperature = base_temp - (lat_factor * 20) + temp_variation
+        temperature = base_temp + temp_variation
         
         # Generate other weather parameters
         humidity = random.randint(30, 90)

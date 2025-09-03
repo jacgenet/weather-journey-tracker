@@ -563,27 +563,38 @@ const PersonDashboard: React.FC = () => {
         </Box>
       );
     } else if (periodStats.data_exists && periodStats.data_coverage === 'partial') {
+      // Check if this is a future date
+      const isFutureDate = event.startDate > new Date();
+      
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <Warning color="warning" fontSize="small" />
           <Typography variant="caption" color="warning.main" sx={{ fontWeight: 'medium' }}>
-            Historical Data ({periodStats.coverage_percentage}% coverage)
+            {isFutureDate ? 'Simulated Data' : 'Historical Data'} ({periodStats.coverage_percentage}% coverage)
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            (Based on historical weather patterns for {periodStats.total_days} days)
+            {isFutureDate 
+              ? '(Simulated weather data for future dates)'
+              : `(Based on historical weather patterns for ${periodStats.total_days} days)`
+            }
           </Typography>
         </Box>
       );
     } else {
       // Fallback state - no data exists for the exact period
+      const isFutureDate = event.startDate > new Date();
+      
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <Info color="info" fontSize="small" />
           <Typography variant="caption" color="info.main" sx={{ fontWeight: 'medium' }}>
-            Limited Data
+            {isFutureDate ? 'Future Date' : 'Limited Data'}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            (Weather data not available for this period)
+            {isFutureDate 
+              ? '(Weather data not available for future dates)'
+              : '(Weather data not available for this period)'
+            }
           </Typography>
         </Box>
       );
