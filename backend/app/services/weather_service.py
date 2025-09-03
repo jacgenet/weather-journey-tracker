@@ -646,7 +646,12 @@ class WeatherService:
             return []  # Return empty list for future dates
         
         if not self.api_key:
-            return self._get_mock_historical_data(lat, lon, start_date, end_date)
+            # For mock data, add a flag to indicate it's simulated
+            mock_data = self._get_mock_historical_data(lat, lon, start_date, end_date)
+            # Add a flag to indicate this is mock data
+            for record in mock_data:
+                record['is_mock_data'] = True
+            return mock_data
         
         try:
             # OpenWeatherMap historical data API (requires paid plan)
@@ -812,6 +817,10 @@ class WeatherService:
     def _get_mock_historical_data(self, lat: float, lon: float, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Generate mock historical weather data for development"""
         from datetime import timedelta
+        
+        print(f"⚠️ Generating mock historical data for {start_date.date()} to {end_date.date()}")
+        print(f"   This is NOT real weather data - it's simulated for development purposes")
+        print(f"   ⚠️ IMPORTANT: Mock data should NOT be stored in the database!")
         
         historical_data = []
         current_date = start_date

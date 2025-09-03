@@ -7,6 +7,7 @@ from app.services.weather_service import get_weather_data, get_weather_history, 
 from datetime import datetime, timedelta
 import statistics
 import json
+import os
 
 weather_bp = Blueprint('weather', __name__)
 
@@ -243,7 +244,13 @@ def refresh_weather_data(location_id):
 @weather_bp.route('/period-stats/<int:location_id>', methods=['GET'])
 @jwt_required()
 def get_weather_period_stats(location_id):
-    """Get weather statistics for a specific time period at a location"""
+    """
+    Get weather statistics for a specific time period at a location
+    
+    ⚠️ IMPORTANT: This endpoint reads from WeatherRecord table.
+    Historical weather data (2022-2024) is valuable and should be preserved.
+    Do NOT delete weather records without creating a backup first!
+    """
     current_user_id = get_jwt_identity()
     
     try:
@@ -299,12 +306,17 @@ def get_weather_period_stats(location_id):
                     
                     # Determine data coverage quality
                     # Mock data should never be marked as "complete" or "verified"
-                    if coverage_percentage >= 80:
+                    # Check if this is mock data by looking at the source
+                    is_mock_data = not os.environ.get('OPENWEATHER_API_KEY')  # No API key = mock data
+                    
+                    if is_mock_data:
                         data_coverage = 'partial'  # Mock data is always partial
+                    elif coverage_percentage >= 80:
+                        data_coverage = 'complete'  # Real data can be complete
                     elif coverage_percentage >= 50:
                         data_coverage = 'partial'
                     else:
-                        data_coverage = 'partial'  # Better than fallback
+                        data_coverage = 'partial'
                     
                     return jsonify({
                         'location': location.to_dict(),
