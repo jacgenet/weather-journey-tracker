@@ -40,6 +40,7 @@ import { locationService, Location as LocationType } from '../services/locationS
 import { weatherService } from '../services/weatherService';
 import { countUniqueCountries } from '../utils/countryUtils';
 import { usePreferences, TemperatureUnit } from '../contexts/PreferencesContext';
+import PersonLocationMap from '../components/PersonLocationMap';
 
 interface TimelineEvent {
   id: string;
@@ -863,6 +864,12 @@ const PersonDashboard: React.FC = () => {
           </Grid>
         </Grid>
       )}
+
+      {/* Journey Map */}
+      <PersonLocationMap 
+        timelineEvents={timelineEvents}
+        personName={person.first_name}
+      />
 
       {/* Life Timeline */}
       <Card sx={{ mb: 4 }}>
