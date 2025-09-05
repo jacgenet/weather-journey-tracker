@@ -9,6 +9,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import HomePage from './pages/HomePage';
 import Locations from './pages/Locations';
 import Weather from './pages/Weather';
 import People from './pages/People';
@@ -65,11 +66,19 @@ function App() {
                 path="/"
                 element={
                   <PrivateRoute>
+                    <HomePage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/app"
+                element={
+                  <PrivateRoute>
                     <Layout />
                   </PrivateRoute>
                 }
               >
-                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route index element={<Navigate to="/app/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="locations" element={<Locations />} />
                 <Route path="weather" element={<Weather />} />
