@@ -719,481 +719,11 @@ const PersonDashboard: React.FC = () => {
               </Typography>
             </Box>
           )}
-        </Card>
 
-        {/* Statistics Cards - Airbnb Style */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ 
-              borderRadius: '16px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-              border: '1px solid #e0e0e0',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
-                transform: 'translateY(-2px)',
-              }
-            }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Box
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '12px',
-                      bgcolor: '#e3f2fd',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mr: 2
-                    }}
-                  >
-                    <Person sx={{ color: '#1976d2', fontSize: '1.5rem' }} />
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
-                    Days Alive
-                  </Typography>
-                </Box>
-                <Typography variant="h3" sx={{ fontWeight: 800, color: '#222222', mb: 1 }}>
-                  {person.birth_date ? (() => {
-                    const birth = parseDateConsistent(person.birth_date);
-                    const today = new Date();
-                    const timeDiff = today.getTime() - birth.getTime();
-                    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-                    return daysDiff.toLocaleString();
-                  })() : 'N/A'
-                  }
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#717171', fontWeight: 500 }}>
-                  Since {person.birth_date ? formatDateConsistent(person.birth_date) : 'birth'}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={2.4}>
-            <Card sx={{ 
-              borderRadius: '16px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-              border: '1px solid #e0e0e0',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
-                transform: 'translateY(-2px)',
-              }
-            }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Box
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '12px',
-                      bgcolor: '#f3e5f5',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mr: 2
-                    }}
-                  >
-                    <CalendarToday sx={{ color: '#7b1fa2', fontSize: '1.5rem' }} />
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
-                    Total Visits
-                  </Typography>
-                </Box>
-                <Typography variant="h3" sx={{ fontWeight: 800, color: '#222222', mb: 1 }}>
-                  {person.visits?.length || 0}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={2.4}>
-            <Card sx={{ 
-              borderRadius: '16px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-              border: '1px solid #e0e0e0',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
-                transform: 'translateY(-2px)',
-              }
-            }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Box
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '12px',
-                      bgcolor: '#e8f5e8',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mr: 2
-                    }}
-                  >
-                    <LocationOn sx={{ color: '#388e3c', fontSize: '1.5rem' }} />
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
-                    Locations Visited
-                  </Typography>
-                </Box>
-                <Typography variant="h3" sx={{ fontWeight: 800, color: '#222222', mb: 1 }}>
-                  {new Set(person.visits?.map(v => v.location_id) || []).size}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={2.4}>
-            <Card sx={{ 
-              borderRadius: '16px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-              border: '1px solid #e0e0e0',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
-                transform: 'translateY(-2px)',
-              }
-            }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Box
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '12px',
-                      bgcolor: '#fff3e0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mr: 2
-                    }}
-                  >
-                    <WbSunny sx={{ color: '#f57c00', fontSize: '1.5rem' }} />
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
-                    Highest Temperature
-                  </Typography>
-                </Box>
-                <Typography variant="h3" sx={{ fontWeight: 800, color: '#f57c00', mb: 1 }}>
-                  {timelineEvents.some(e => e.periodWeatherStats?.data_exists) 
-                    ? `${Math.max(...timelineEvents
-                        .filter(e => e.periodWeatherStats?.data_exists)
-                        .map(e => e.periodWeatherStats!.highest_temperature)).toFixed(1)}°F`
-                    : 'N/A'
-                  }
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#717171', fontWeight: 500 }}>
-                  Across all visits
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={2.4}>
-            <Card sx={{ 
-              borderRadius: '16px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-              border: '1px solid #e0e0e0',
-              background: 'linear-gradient(135deg, #ff9800 0%, #ff5722 100%)',
-              color: 'white',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                boxShadow: '0 8px 30px rgba(255, 152, 0, 0.3)',
-                transform: 'translateY(-2px)',
-              }
-            }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Box
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '12px',
-                      bgcolor: 'rgba(255, 255, 255, 0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mr: 2
-                    }}
-                  >
-                    <Cloud sx={{ color: 'white', fontSize: '1.5rem' }} />
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'white' }}>
-                    Lowest Temperature
-                  </Typography>
-                </Box>
-                <Typography variant="h3" sx={{ fontWeight: 800, color: 'white', mb: 1 }}>
-                  {timelineEvents.some(e => e.periodWeatherStats?.data_exists) 
-                    ? `${Math.min(...timelineEvents
-                        .filter(e => e.periodWeatherStats?.data_exists)
-                        .map(e => e.periodWeatherStats!.lowest_temperature)).toFixed(1)}°F`
-                    : 'N/A'
-                  }
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'white', opacity: 0.9, fontWeight: 500 }}>
-                  Across all visits
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        {/* Additional Weather Stats Row - Airbnb Style */}
-        {timelineEvents.some(e => e.periodWeatherStats?.data_exists) && (
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ 
-                borderRadius: '16px',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                border: '1px solid #e0e0e0',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
-                  transform: 'translateY(-2px)',
-                }
-              }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: '12px',
-                        bgcolor: '#e8f5e8',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2
-                      }}
-                    >
-                      <Thermostat sx={{ color: '#388e3c', fontSize: '1.5rem' }} />
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
-                      Average Temperature
-                    </Typography>
-                  </Box>
-                  <Typography variant="h3" sx={{ fontWeight: 800, color: '#388e3c', mb: 1 }}>
-                    {(() => {
-                      const eventsWithData = timelineEvents.filter(e => e.periodWeatherStats?.data_exists);
-                      if (eventsWithData.length === 0) return 'N/A';
-                      
-                      const totalTemp = eventsWithData.reduce((sum, e) => sum + e.periodWeatherStats!.average_temperature, 0);
-                      const avgTemp = totalTemp / eventsWithData.length;
-                      return `${Math.round(avgTemp)}°F`;
-                    })()}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#717171', fontWeight: 500 }}>
-                    Across all visits
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ 
-                borderRadius: '16px',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                border: '1px solid #e0e0e0',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
-                  transform: 'translateY(-2px)',
-                }
-              }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: '12px',
-                        bgcolor: '#e3f2fd',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2
-                      }}
-                    >
-                      <WbSunny sx={{ color: '#1976d2', fontSize: '1.5rem' }} />
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
-                      Weather Records
-                    </Typography>
-                  </Box>
-                  <Typography variant="h3" sx={{ fontWeight: 800, color: '#1976d2', mb: 1 }}>
-                    {timelineEvents.reduce((total, e) => total + (e.periodWeatherStats?.total_records || 0), 0)}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#717171', fontWeight: 500 }}>
-                    Total weather data points
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ 
-                borderRadius: '16px',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                border: '1px solid #e0e0e0',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
-                  transform: 'translateY(-2px)',
-                }
-              }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: '12px',
-                        bgcolor: '#f3e5f5',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2
-                      }}
-                    >
-                      <CheckCircle sx={{ color: '#7b1fa2', fontSize: '1.5rem' }} />
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
-                      Data Coverage
-                    </Typography>
-                  </Box>
-                  <Typography variant="h3" sx={{ fontWeight: 800, color: '#7b1fa2', mb: 1 }}>
-                    {(() => {
-                      const eventsWithData = timelineEvents.filter(e => e.periodWeatherStats?.data_exists);
-                      if (eventsWithData.length === 0) return '0%';
-                      
-                      const completeData = eventsWithData.filter(e => e.periodWeatherStats!.data_coverage === 'complete').length;
-                      const percentage = Math.round((completeData / eventsWithData.length) * 100);
-                      return `${percentage}%`;
-                    })()}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#717171', fontWeight: 500 }}>
-                    Complete weather data
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ 
-                borderRadius: '16px',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                border: '1px solid #e0e0e0',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
-                  transform: 'translateY(-2px)',
-                }
-              }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: '12px',
-                        bgcolor: '#fff3e0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2
-                      }}
-                    >
-                      <Visibility sx={{ color: '#f57c00', fontSize: '1.5rem' }} />
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
-                      Active Visits
-                    </Typography>
-                  </Box>
-                  <Typography variant="h3" sx={{ fontWeight: 800, color: '#f57c00', mb: 1 }}>
-                    {timelineEvents.filter(e => e.periodWeatherStats?.data_exists).length}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#717171', fontWeight: 500 }}>
-                    With weather data
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{ 
-                borderRadius: '16px',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                border: '1px solid #e0e0e0',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
-                  transform: 'translateY(-2px)',
-                }
-              }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: '12px',
-                        bgcolor: '#e8f5e8',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2
-                      }}
-                    >
-                      <LocationOn sx={{ color: '#388e3c', fontSize: '1.5rem' }} />
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
-                      Countries Visited
-                    </Typography>
-                  </Box>
-                  <Typography variant="h3" sx={{ fontWeight: 800, color: '#388e3c', mb: 1 }}>
-                    {countUniqueCountries(
-                      person.visits?.map(v => {
-                        const loc = locations.find(l => l.id === v.location_id);
-                        return loc?.country;
-                      }).filter((country): country is string => Boolean(country)) || []
-                    )}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#717171', fontWeight: 500 }}>
-                    Unique countries
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        )}
-
-      {/* Journey Map */}
-      <PersonLocationMap 
-        timelineEvents={timelineEvents}
-        personName={person.first_name}
-      />
-
-        {/* Life Timeline - Airbnb Style */}
-        <Card sx={{ 
-          mb: 4, 
-          borderRadius: '16px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          border: '1px solid #e0e0e0',
-          overflow: 'hidden'
-        }}>
-          <Box
-            sx={{
-              background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-              p: 3,
-              borderBottom: '1px solid #e0e0e0'
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: '#222222' }}>
+          {/* Life Timeline - Integrated into Header */}
+          <Box sx={{ p: 3, bgcolor: 'white' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: '#222222' }}>
                 Life Timeline
               </Typography>
               
@@ -1206,354 +736,780 @@ const PersonDashboard: React.FC = () => {
                 </Box>
               )}
             </Box>
-          </Box>
-          <CardContent sx={{ p: 0 }}>
-          
-          {/* Timeline Summary */}
-          <Box sx={{ mb: 2, p: 2, bgcolor: 'success.50', borderRadius: 2, border: '1px solid', borderColor: 'success.200' }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={3}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
-                    {timelineEvents.length}
-                  </Typography>
-                  <Typography variant="body2" color="success.main">
-                    Total Events
-                  </Typography>
-                </Box>
+
+            {/* Timeline Summary */}
+            <Box sx={{ mb: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: 2, border: '1px solid #e9ecef' }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                      {timelineEvents.length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Events
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                      {timelineEvents.filter(e => e.startDate.getTime() !== e.endDate.getTime() && e.type !== 'home').length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Multi-day Visits
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                      {timelineEvents.filter(e => e.type === 'home').length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Home Events
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h6" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                      {timelineEvents.filter(e => e.isCurrentLocation).length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Current Locations
+                    </Typography>
+                  </Box>
+                </Grid>
               </Grid>
-              <Grid item xs={12} sm={3}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
-                    {timelineEvents.filter(e => e.startDate.getTime() !== e.endDate.getTime() && e.type !== 'home').length}
-                  </Typography>
-                  <Typography variant="body2" color="success.main">
-                    Multi-day Visits
-                  </Typography>
-                </Box>
+            </Box>
+
+            {/* Statistics Cards - Integrated into Timeline */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ 
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid #e0e0e0',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    transform: 'translateY(-2px)',
+                  }
+                }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Box
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '12px',
+                          bgcolor: '#e3f2fd',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2
+                        }}
+                      >
+                        <Person sx={{ color: '#1976d2', fontSize: '1.5rem' }} />
+                      </Box>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
+                        Days Alive
+                      </Typography>
+                    </Box>
+                    <Typography variant="h3" sx={{ fontWeight: 800, color: '#222222', mb: 1 }}>
+                      {person.birth_date ? (() => {
+                        const birth = parseDateConsistent(person.birth_date);
+                        const today = new Date();
+                        const timeDiff = today.getTime() - birth.getTime();
+                        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                        return daysDiff.toLocaleString();
+                      })() : 'N/A'
+                      }
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#717171', fontWeight: 500 }}>
+                      Since {person.birth_date ? formatDateConsistent(person.birth_date) : 'birth'}
+                    </Typography>
+                  </CardContent>
+                </Card>
               </Grid>
-              <Grid item xs={12} sm={3}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
-                    {timelineEvents.filter(e => e.type === 'home').length}
-                  </Typography>
-                  <Typography variant="body2" color="success.main">
-                    Home Events
-                  </Typography>
-                </Box>
+
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Card sx={{ 
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid #e0e0e0',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    transform: 'translateY(-2px)',
+                  }
+                }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Box
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '12px',
+                          bgcolor: '#f3e5f5',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2
+                        }}
+                      >
+                        <CalendarToday sx={{ color: '#7b1fa2', fontSize: '1.5rem' }} />
+                      </Box>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
+                        Total Visits
+                      </Typography>
+                    </Box>
+                    <Typography variant="h3" sx={{ fontWeight: 800, color: '#222222', mb: 1 }}>
+                      {person.visits?.length || 0}
+                    </Typography>
+                  </CardContent>
+                </Card>
               </Grid>
-              <Grid item xs={12} sm={3}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
-                    {timelineEvents.filter(e => e.isCurrentLocation).length}
-                  </Typography>
-                  <Typography variant="body2" color="success.main">
-                    Current Locations
-                  </Typography>
-                </Box>
+
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Card sx={{ 
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid #e0e0e0',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    transform: 'translateY(-2px)',
+                  }
+                }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Box
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '12px',
+                          bgcolor: '#fff3e0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2
+                        }}
+                      >
+                        <LocationOn sx={{ color: '#f57c00', fontSize: '1.5rem' }} />
+                      </Box>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
+                        Locations Visited
+                      </Typography>
+                    </Box>
+                    <Typography variant="h3" sx={{ fontWeight: 800, color: '#f57c00', mb: 1 }}>
+                      {person.visits ? countUniqueCountries(
+                        person.visits
+                          .map(v => v.location?.country)
+                          .filter((country): country is string => Boolean(country))
+                      ) : 0}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Card sx={{ 
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid #e0e0e0',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    transform: 'translateY(-2px)',
+                  }
+                }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Box
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '12px',
+                          bgcolor: '#fff3e0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2
+                        }}
+                      >
+                        <WbSunny sx={{ color: '#f57c00', fontSize: '1.5rem' }} />
+                      </Box>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
+                        Highest Temperature
+                      </Typography>
+                    </Box>
+                    <Typography variant="h3" sx={{ fontWeight: 800, color: '#f57c00', mb: 1 }}>
+                      {timelineEvents.some(e => e.periodWeatherStats?.data_exists) 
+                        ? `${Math.max(...timelineEvents
+                            .filter(e => e.periodWeatherStats?.data_exists)
+                            .map(e => e.periodWeatherStats!.highest_temperature)).toFixed(1)}°F`
+                        : 'N/A'
+                      }
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Card sx={{ 
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid #e0e0e0',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    transform: 'translateY(-2px)',
+                  }
+                }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Box
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '12px',
+                          bgcolor: '#fff3e0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2
+                        }}
+                      >
+                        <Cloud sx={{ color: '#f57c00', fontSize: '1.5rem' }} />
+                      </Box>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
+                        Lowest Temperature
+                      </Typography>
+                    </Box>
+                    <Typography variant="h3" sx={{ fontWeight: 800, color: '#f57c00', mb: 1 }}>
+                      {timelineEvents.some(e => e.periodWeatherStats?.data_exists) 
+                        ? `${Math.min(...timelineEvents
+                            .filter(e => e.periodWeatherStats?.data_exists)
+                            .map(e => e.periodWeatherStats!.lowest_temperature)).toFixed(1)}°F`
+                        : 'N/A'
+                      }
+                    </Typography>
+                  </CardContent>
+                </Card>
               </Grid>
             </Grid>
-          </Box>
-          
-          {/* Timeline Order Explanation */}
-          <Box sx={{ mb: 2, p: 2, bgcolor: 'info.50', borderRadius: 2, border: '1px solid', borderColor: 'info.200' }}>
-            <Typography variant="body2" color="info.main" sx={{ fontWeight: 'medium', display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Info fontSize="small" />
-              Timeline shows current location at top, with journey flowing chronologically from newest to oldest. Each event displays its full date range for clarity.
-            </Typography>
-          </Box>
-          
-          {timelineEvents.length > 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 3 }}>
-              {timelineEvents.map((event, index) => (
-                <Card
-                  key={event.id}
-                  sx={{
+
+            {/* Additional Weather Stats Row */}
+            {timelineEvents.some(e => e.periodWeatherStats?.data_exists) && (
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ 
                     borderRadius: '16px',
                     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
                     border: '1px solid #e0e0e0',
                     transition: 'all 0.3s ease',
-                    position: 'relative',
-                    overflow: 'hidden',
                     '&:hover': {
                       boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
                       transform: 'translateY(-2px)',
-                    },
-                    '&::before': event.isCurrentLocation ? {
-                      content: '""',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: '4px',
-                      background: 'linear-gradient(135deg, #FF5A5F 0%, #FF8A80 100%)',
-                      borderRadius: '16px 16px 0 0'
-                    } : {},
-                    animation: event.isCurrentLocation ? 'pulse 2s infinite' : 'none',
-                    '@keyframes pulse': {
-                      '0%': { boxShadow: '0 0 0 0 rgba(255, 90, 95, 0.7)' },
-                      '70%': { boxShadow: '0 0 0 10px rgba(255, 90, 95, 0)' },
-                      '100%': { boxShadow: '0 0 0 0 rgba(255, 90, 95, 0)' }
                     }
-                  }}
-                >
-                  <CardContent sx={{ p: 3 }}>
-                  {/* Top Row: Event Info and Basic Weather */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Chip
-                        icon={event.icon}
-                        label={event.type === 'home' && event.id === 'birth' ? 'Started at Home' : 
-                               event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
-                               event.type === 'home' ? 'Returned Home' :
-                               formatDateRange(event.startDate, event.endDate)}
-                        size="small"
-                        sx={{ 
-                          bgcolor: event.color + '.light',
-                          fontWeight: event.type === 'home' ? 'bold' : 'normal'
-                        }}
-                      />
-                      
-                      {/* Current Location Badge */}
-                      {event.isCurrentLocation && (
-                        <Chip
-                          icon={<LocationOn fontSize="small" />}
-                          label="Current Location"
-                          size="small"
-                          sx={{ 
-                            backgroundColor: 'primary.main',
-                            color: 'white',
-                            fontWeight: 'bold',
-                            '& .MuiChip-icon': { color: 'white' }
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box display="flex" alignItems="center" mb={2}>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: '12px',
+                            bgcolor: '#f3e5f5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mr: 2
                           }}
-                        />
-                      )}
-                      
-                      {/* Multi-day Event Badge */}
-                      {event.startDate.getTime() !== event.endDate.getTime() && event.type !== 'home' && (
-                        <Chip
-                          icon={<CalendarToday fontSize="small" />}
-                          label="Multi-day"
-                          size="small"
-                          sx={{ 
-                            backgroundColor: 'success.main',
-                            color: 'white',
-                            fontWeight: 'medium',
-                            '& .MuiChip-icon': { color: 'white' }
-                          }}
-                        />
-                      )}
-                      
-                      {/* Multi-day Home Event Badge */}
-                      {event.startDate.getTime() !== event.endDate.getTime() && event.type === 'home' && !event.isCurrentLocation && (
-                        <Chip
-                          icon={<CalendarToday fontSize="small" />}
-                          label="Multi-day"
-                          size="small"
-                          sx={{ 
-                            backgroundColor: 'info.main',
-                            color: 'white',
-                            fontWeight: 'medium',
-                            '& .MuiChip-icon': { color: 'white' }
-                          }}
-                        />
-                      )}
-                      
-                      {/* Ongoing Event Badge */}
-                      {event.isCurrentLocation && (
-                        <Chip
-                          icon={<CalendarToday fontSize="small" />}
-                          label="Ongoing"
-                          size="small"
-                          sx={{ 
-                            backgroundColor: 'primary.main',
-                            color: 'white',
-                            fontWeight: 'medium',
-                            '& .MuiChip-icon': { color: 'white' }
-                          }}
-                        />
-                      )}
-                      
-                      {event.weather && (
-                        <Chip
-                          icon={<WbSunny fontSize="small" />}
-                          label={formatTemperature(event.weather.temperature)}
-                          size="small"
-                          sx={{ 
-                            backgroundColor: 'primary.main',
-                            color: 'white',
-                            '& .MuiChip-icon': { color: 'white' }
-                          }}
-                        />
-                      )}
-                    </Box>
-                    
-                    {/* Event Title and Description */}
-                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                      <Typography variant="h6" component="span" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
-                        {event.type === 'home' && event.id === 'birth' ? 'Started at Home' :
-                         event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
-                         event.type === 'home' ? 'Returned Home' :
-                         event.title}
-                      </Typography>
-                      
-                      {/* Date Range Display */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <CalendarToday fontSize="small" color="action" />
-                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'medium' }}>
-                          {event.type === 'home' && event.id === 'birth'
-                            ? formatDateConsistent(event.startDate.toISOString().split('T')[0])
-                            : event.type === 'home' && event.id.includes('home-final')
-                            ? `Since ${formatDateConsistent(event.startDate.toISOString().split('T')[0])}`
-                            : event.type === 'home'
-                            ? `${formatDateConsistent(event.startDate.toISOString().split('T')[0])} - ${formatDateConsistent(event.endDate.toISOString().split('T')[0])}`
-                            : event.startDate.getTime() === event.endDate.getTime() 
-                            ? formatDateConsistent(event.startDate.toISOString().split('T')[0])
-                            : `${formatDateConsistent(event.startDate.toISOString().split('T')[0])} - ${formatDateConsistent(event.endDate.toISOString().split('T')[0])}`
-                          }
-                        </Typography>
-                        
-                        {/* Duration for multi-day events (excluding home events) */}
-                        {event.startDate.getTime() !== event.endDate.getTime() && event.type !== 'home' && (
-                          <Chip
-                            label={`${Math.ceil((event.endDate.getTime() - event.startDate.getTime()) / (1000 * 60 * 60 * 24))} days`}
-                            size="small"
-                            variant="outlined"
-                            sx={{ 
-                              borderColor: 'success.main',
-                              color: 'success.main',
-                              fontSize: '0.7rem'
-                            }}
-                          />
-                        )}
-                        
-                        {/* Duration for multi-day home events */}
-                        {event.startDate.getTime() !== event.endDate.getTime() && event.type === 'home' && !event.isCurrentLocation && (
-                          <Chip
-                            label={`${Math.ceil((event.endDate.getTime() - event.startDate.getTime()) / (1000 * 60 * 60 * 24))} days`}
-                            size="small"
-                            variant="outlined"
-                            sx={{ 
-                              borderColor: 'info.main',
-                              color: 'info.main',
-                              fontSize: '0.7rem'
-                            }}
-                          />
-                        )}
-                        
-                        {/* Duration for ongoing home events */}
-                        {event.isCurrentLocation && (
-                          <Chip
-                            label={`${Math.ceil((event.endDate.getTime() - event.startDate.getTime()) / (1000 * 60 * 60 * 24))} days`}
-                            size="small"
-                            variant="outlined"
-                            sx={{ 
-                              borderColor: 'primary.main',
-                              color: 'primary.main',
-                              fontSize: '0.7rem'
-                            }}
-                          />
-                        )}
-                      </Box>
-                      
-                      <Typography variant="body2" color="text.secondary">
-                        {event.description}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Second Row: Weather Data State and Statistics */}
-                  {event.periodWeatherStats && (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                      {/* Weather Data State Indicator */}
-                      {renderWeatherDataState(event.periodWeatherStats, event)}
-                      
-                      {/* Period Weather Statistics Chips */}
-                      {event.periodWeatherStats.total_records > 0 && (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          {/* Weather Data Period Info */}
-                          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                            Weather data for {event.startDate.getTime() === event.endDate.getTime() ? 'this day' : 'this period'}
-                          </Typography>
-                          
-                          {/* Temperature Chips */}
-                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            <Chip
-                              icon={<Thermostat fontSize="small" />}
-                              label={`Avg: ${event.periodWeatherStats.average_temperature}°F`}
-                              color="success"
-                              size="small"
-                              sx={{ mr: 1, mb: 1 }}
-                            />
-                            <Chip
-                              icon={<WbSunny fontSize="small" />}
-                              label={`High: ${event.periodWeatherStats.highest_temperature}°F`}
-                              color="warning"
-                              size="small"
-                              sx={{ mr: 1, mb: 1 }}
-                            />
-                            <Chip
-                              icon={<Cloud fontSize="small" />}
-                              label={`Low: ${event.periodWeatherStats.lowest_temperature}°F`}
-                              color="info"
-                              size="small"
-                              sx={{ mr: 1, mb: 1 }}
-                            />
-                          </Box>
+                        >
+                          <Thermostat sx={{ color: '#7b1fa2', fontSize: '1.5rem' }} />
                         </Box>
-                      )}
-                    </Box>
-                  )}
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
+                          Average Temperature
+                        </Typography>
+                      </Box>
+                      <Typography variant="h3" sx={{ fontWeight: 800, color: '#7b1fa2', mb: 1 }}>
+                        {(() => {
+                          const eventsWithData = timelineEvents.filter(e => e.periodWeatherStats?.data_exists);
+                          if (eventsWithData.length === 0) return 'N/A';
+                          
+                          const totalTemp = eventsWithData.reduce((sum, e) => sum + e.periodWeatherStats!.average_temperature, 0);
+                          const avgTemp = totalTemp / eventsWithData.length;
+                          return `${Math.round(avgTemp)}°F`;
+                        })()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-                  {/* Location Details */}
-                  {event.location && (
-                    <Box sx={{ 
-                      p: 1.5, 
-                      bgcolor: 'secondary.50', 
-                      borderRadius: 1.5, 
-                      border: '1px solid',
-                      borderColor: 'secondary.200'
-                    }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                        <LocationOn fontSize="small" color="secondary" />
-                        <Typography variant="body2" color="secondary.main" sx={{ fontWeight: 'medium' }}>
-                          {event.location.name}
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ 
+                    borderRadius: '16px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                    border: '1px solid #e0e0e0',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                      transform: 'translateY(-2px)',
+                    }
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box display="flex" alignItems="center" mb={2}>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: '12px',
+                            bgcolor: '#e3f2fd',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mr: 2
+                          }}
+                        >
+                          <WbSunny sx={{ color: '#1976d2', fontSize: '1.5rem' }} />
+                        </Box>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
+                          Weather Records
                         </Typography>
                       </Box>
-                      
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {event.location.city}, {event.location.country}
+                      <Typography variant="h3" sx={{ fontWeight: 800, color: '#1976d2', mb: 1 }}>
+                        {timelineEvents.reduce((total, e) => total + (e.periodWeatherStats?.total_records || 0), 0)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ 
+                    borderRadius: '16px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                    border: '1px solid #e0e0e0',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                      transform: 'translateY(-2px)',
+                    }
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box display="flex" alignItems="center" mb={2}>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: '12px',
+                            bgcolor: '#f3e5f5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mr: 2
+                          }}
+                        >
+                          <CheckCircle sx={{ color: '#7b1fa2', fontSize: '1.5rem' }} />
+                        </Box>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
+                          Data Coverage
                         </Typography>
-                        
-                        {event.location.latitude && event.location.longitude && (
-                          <Chip
-                            icon={<Visibility fontSize="small" />}
-                            label={`${event.location.latitude.toFixed(4)}, ${event.location.longitude.toFixed(4)}`}
-                            size="small"
-                            variant="outlined"
-                            color="secondary"
-                          />
-                        )}
                       </Box>
+                      <Typography variant="h3" sx={{ fontWeight: 800, color: '#7b1fa2', mb: 1 }}>
+                        {(() => {
+                          const eventsWithData = timelineEvents.filter(e => e.periodWeatherStats?.data_exists);
+                          if (eventsWithData.length === 0) return '0%';
+                          
+                          const completeData = eventsWithData.filter(e => e.periodWeatherStats!.data_coverage === 'complete').length;
+                          const percentage = Math.round((completeData / eventsWithData.length) * 100);
+                          return `${percentage}%`;
+                        })()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ 
+                    borderRadius: '16px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                    border: '1px solid #e0e0e0',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                      transform: 'translateY(-2px)',
+                    }
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box display="flex" alignItems="center" mb={2}>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: '12px',
+                            bgcolor: '#fff3e0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mr: 2
+                          }}
+                        >
+                          <Visibility sx={{ color: '#f57c00', fontSize: '1.5rem' }} />
+                        </Box>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
+                          Active Visits
+                        </Typography>
+                      </Box>
+                      <Typography variant="h3" sx={{ fontWeight: 800, color: '#f57c00', mb: 1 }}>
+                        {timelineEvents.filter(e => e.periodWeatherStats?.data_exists).length}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Countries Visited Card - Full Width */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid item xs={12}>
+                <Card sx={{ 
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid #e0e0e0',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                    transform: 'translateY(-2px)',
+                  }
+                }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Box
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '12px',
+                          bgcolor: '#e8f5e8',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2
+                        }}
+                      >
+                        <LocationOn sx={{ color: '#2e7d32', fontSize: '1.5rem' }} />
+                      </Box>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222' }}>
+                        Countries Visited
+                      </Typography>
                     </Box>
-                  )}
+                    <Typography variant="h3" sx={{ fontWeight: 800, color: '#2e7d32', mb: 1 }}>
+                      {person.visits ? countUniqueCountries(
+                        person.visits
+                          .map(v => v.location?.country)
+                          .filter((country): country is string => Boolean(country))
+                      ) : 0}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#717171', fontWeight: 500 }}>
+                      Unique countries
+                    </Typography>
                   </CardContent>
                 </Card>
-              ))}
-            </Box>
-          ) : (
-            <Box textAlign="center" py={6} sx={{ p: 3 }}>
-              <Typography variant="h5" sx={{ fontWeight: 600, color: '#222222', mb: 2 }}>
-                No timeline events yet
-              </Typography>
-              <Typography sx={{ color: '#717171', fontWeight: 500 }}>
-                Add visits to see {person.first_name}'s journey through time
-              </Typography>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
+              </Grid>
+            </Grid>
+
+            {/* Journey Map */}
+            <PersonLocationMap 
+              timelineEvents={timelineEvents}
+              personName={person.first_name}
+            />
+
+            {/* Timeline Events */}
+            {timelineEvents.length > 0 ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {timelineEvents.map((event, index) => (
+                  <Card
+                    key={event.id}
+                    sx={{
+                      borderRadius: '12px',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                      border: event.isCurrentLocation ? '2px solid #FF5A5F' : '1px solid #e0e0e0',
+                      transition: 'all 0.2s ease',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&:hover': {
+                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+                        transform: 'translateY(-1px)',
+                      },
+                      '&::before': event.isCurrentLocation ? {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '3px',
+                        background: 'linear-gradient(90deg, #FF5A5F 0%, #FF8A80 100%)',
+                      } : {},
+                    }}
+                  >
+                    <CardContent sx={{ p: 2.5 }}>
+                      {/* Header Row */}
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                          {/* Event Title */}
+                          <Typography 
+                            variant="h6" 
+                            sx={{ 
+                              fontWeight: 600, 
+                              color: '#222222',
+                              mb: 0.5,
+                              fontSize: '1.1rem'
+                            }}
+                          >
+                            {event.type === 'home' && event.id === 'birth' ? 'Started at Home' :
+                             event.type === 'home' && event.id.includes('home-final') ? 'Currently at Home' :
+                             event.type === 'home' ? 'Returned Home' :
+                             event.title}
+                          </Typography>
+                          
+                          {/* Date and Duration */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              {event.type === 'home' && event.id === 'birth'
+                                ? formatDateConsistent(event.startDate.toISOString().split('T')[0])
+                                : event.type === 'home' && event.id.includes('home-final')
+                                ? `Since ${formatDateConsistent(event.startDate.toISOString().split('T')[0])}`
+                                : event.type === 'home'
+                                ? `${formatDateConsistent(event.startDate.toISOString().split('T')[0])} - ${formatDateConsistent(event.endDate.toISOString().split('T')[0])}`
+                                : event.startDate.getTime() === event.endDate.getTime() 
+                                ? formatDateConsistent(event.startDate.toISOString().split('T')[0])
+                                : `${formatDateConsistent(event.startDate.toISOString().split('T')[0])} - ${formatDateConsistent(event.endDate.toISOString().split('T')[0])}`
+                              }
+                            </Typography>
+                            
+                            {/* Duration */}
+                            {event.startDate.getTime() !== event.endDate.getTime() && (
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  color: event.isCurrentLocation ? '#FF5A5F' : '#717171',
+                                  fontWeight: 500,
+                                  fontSize: '0.85rem'
+                                }}
+                              >
+                                ({Math.ceil((event.endDate.getTime() - event.startDate.getTime()) / (1000 * 60 * 60 * 24))} days)
+                              </Typography>
+                            )}
+                          </Box>
+                          
+                          {/* Status Badges */}
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                            {event.isCurrentLocation && (
+                              <Chip
+                                icon={<LocationOn fontSize="small" />}
+                                label="Current Location"
+                                size="small"
+                                sx={{ 
+                                  backgroundColor: '#FF5A5F',
+                                  color: 'white',
+                                  fontWeight: 500,
+                                  fontSize: '0.75rem',
+                                  height: '24px',
+                                  '& .MuiChip-icon': { color: 'white', fontSize: '0.9rem' }
+                                }}
+                              />
+                            )}
+                            
+                            {event.weather && (
+                              <Chip
+                                icon={<WbSunny fontSize="small" />}
+                                label={formatTemperature(event.weather.temperature)}
+                                size="small"
+                                sx={{ 
+                                  backgroundColor: '#f0f0f0',
+                                  color: '#222222',
+                                  fontWeight: 500,
+                                  fontSize: '0.75rem',
+                                  height: '24px',
+                                  '& .MuiChip-icon': { color: '#FF5A5F', fontSize: '0.9rem' }
+                                }}
+                              />
+                            )}
+                          </Box>
+                          
+                          {/* Event Description */}
+                          {event.description && (
+                            <Typography 
+                              variant="body2" 
+                              color="text.secondary" 
+                              sx={{ 
+                                mt: 1.5,
+                                fontStyle: 'italic',
+                                fontSize: '0.9rem',
+                                lineHeight: 1.4
+                              }}
+                            >
+                              {event.description}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+
+                      {/* Weather Data Section */}
+                      {event.periodWeatherStats && (
+                        <Box sx={{ 
+                          bgcolor: '#f8f9fa', 
+                          borderRadius: '8px', 
+                          p: 2, 
+                          mb: 2,
+                          border: '1px solid #e9ecef'
+                        }}>
+                          {/* Weather Data State Indicator */}
+                          {renderWeatherDataState(event.periodWeatherStats, event)}
+                          
+                          {/* Weather Statistics */}
+                          {event.periodWeatherStats.total_records > 0 && (
+                            <Box sx={{ mt: 1.5 }}>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
+                                Weather data for {event.startDate.getTime() === event.endDate.getTime() ? 'this day' : 'this period'}
+                              </Typography>
+                              
+                              {/* Temperature Stats - Clean Grid Layout */}
+                              <Box sx={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(3, 1fr)', 
+                                gap: 1.5 
+                              }}>
+                                <Box sx={{ textAlign: 'center' }}>
+                                  <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '8px',
+                                    backgroundColor: '#10B981',
+                                    mx: 'auto',
+                                    mb: 0.5
+                                  }}>
+                                    <Thermostat sx={{ color: 'white', fontSize: '1.2rem' }} />
+                                  </Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#222222', mb: 0.25 }}>
+                                    {event.periodWeatherStats.average_temperature}°F
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                                    Average
+                                  </Typography>
+                                </Box>
+                                
+                                <Box sx={{ textAlign: 'center' }}>
+                                  <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '8px',
+                                    backgroundColor: '#F59E0B',
+                                    mx: 'auto',
+                                    mb: 0.5
+                                  }}>
+                                    <WbSunny sx={{ color: 'white', fontSize: '1.2rem' }} />
+                                  </Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#222222', mb: 0.25 }}>
+                                    {event.periodWeatherStats.highest_temperature}°F
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                                    High
+                                  </Typography>
+                                </Box>
+                                
+                                <Box sx={{ textAlign: 'center' }}>
+                                  <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '8px',
+                                    backgroundColor: '#3B82F6',
+                                    mx: 'auto',
+                                    mb: 0.5
+                                  }}>
+                                    <Cloud sx={{ color: 'white', fontSize: '1.2rem' }} />
+                                  </Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#222222', mb: 0.25 }}>
+                                    {event.periodWeatherStats.lowest_temperature}°F
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                                    Low
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+
+                      {/* Location Details */}
+                      {event.location && (
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1.5,
+                          p: 1.5,
+                          bgcolor: '#f8f9fa',
+                          borderRadius: '8px',
+                          border: '1px solid #e9ecef'
+                        }}>
+                          <LocationOn sx={{ color: '#717171', fontSize: '1.1rem' }} />
+                          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#222222', mb: 0.25 }}>
+                              {event.location.name}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                              {event.location.city}, {event.location.country}
+                            </Typography>
+                          </Box>
+                          
+                          {event.location.latitude && event.location.longitude && (
+                            <Typography 
+                              variant="caption" 
+                              color="text.secondary" 
+                              sx={{ 
+                                fontSize: '0.7rem',
+                                fontFamily: 'monospace',
+                                bgcolor: 'white',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: '4px',
+                                border: '1px solid #e0e0e0'
+                              }}
+                            >
+                              {event.location.latitude.toFixed(4)}, {event.location.longitude.toFixed(4)}
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+            ) : (
+              <Box textAlign="center" py={4}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#222222', mb: 2 }}>
+                  No timeline events yet
+                </Typography>
+                <Typography sx={{ color: '#717171', fontWeight: 500 }}>
+                  Add visits to see {person.first_name}'s journey through time
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Card>
+
+
 
         {/* Quick Actions - Airbnb Style */}
         <Box display="flex" gap={2} justifyContent="center" sx={{ mt: 4 }}>
