@@ -4,7 +4,7 @@ from app import db
 from app.models.person import Person
 from app.models.person_location import PersonLocation
 from app.models.location import Location
-from datetime import datetime
+from datetime import datetime, date
 
 people_bp = Blueprint('people', __name__)
 
@@ -314,3 +314,171 @@ def search_people():
     except Exception as e:
         print(f"Error searching people: {e}")
         return jsonify({'error': 'Failed to search people'}), 500
+
+@people_bp.route('/people/dashboard-temps', methods=['GET'])
+@jwt_required()
+def get_dashboard_temps():
+    """Get temperature data using the same calculation method as PersonDashboard"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Get all people for this user
+        people = Person.query.filter_by(user_id=current_user_id).all()
+        
+        people_temps = []
+        
+        for person in people:
+            # Get visits for this person
+            person_visits = PersonLocation.query.filter_by(person_id=person.id).all()
+            
+            if person_visits:
+                # Use the same calculation method as PersonDashboard
+                from app.models.weather_record import WeatherRecord
+                from datetime import datetime, timedelta
+                
+                all_highest_temps = []
+                all_lowest_temps = []
+                all_avg_temps = []
+                
+                for visit in person_visits:
+                    location = Location.query.get(visit.location_id)
+                    if location:
+                        # Create a 14-day window around the visit date (same as PersonDashboard)
+                        visit_date = visit.start_date  # Already a date object
+                        start_date = visit_date - timedelta(days=7)
+                        end_date = visit_date + timedelta(days=7)
+                        
+                        # Get weather records for this specific period
+                        weather_records = WeatherRecord.query.filter(
+                            WeatherRecord.location_id == location.id,
+                            WeatherRecord.recorded_at >= start_date,
+                            WeatherRecord.recorded_at <= end_date
+                        ).all()
+                        
+                        if weather_records:
+                            # Filter to realistic temperature range
+                            valid_temps = [record.temperature for record in weather_records 
+                                         if 0 <= record.temperature <= 45]
+                            
+                            if valid_temps:
+                                all_highest_temps.append(max(valid_temps))
+                                all_lowest_temps.append(min(valid_temps))
+                                all_avg_temps.append(sum(valid_temps) / len(valid_temps))
+                
+                if all_highest_temps and all_lowest_temps and all_avg_temps:
+                    highest_temp = max(all_highest_temps)
+                    lowest_temp = min(all_lowest_temps)
+                    avg_temp = sum(all_avg_temps) / len(all_avg_temps)
+                else:
+                    highest_temp = 0
+                    lowest_temp = 0
+                    avg_temp = 0
+            else:
+                highest_temp = 0
+                lowest_temp = 0
+                avg_temp = 0
+            
+            people_temps.append({
+                'person_id': person.id,
+                'first_name': person.first_name,
+                'highest_temp': highest_temp,
+                'lowest_temp': lowest_temp,
+                'avg_temp': avg_temp
+            })
+        
+        return jsonify({'people_temps': people_temps})
+        
+    except Exception as e:
+        print(f"Error fetching dashboard temps: {str(e)}")
+        return jsonify({'error': 'Failed to fetch dashboard temps'}), 500
+
+@people_bp.route('/people/homepage-stats', methods=['GET'])
+@jwt_required()
+def get_homepage_stats():
+    """Get homepage statistics for all people in one efficient call"""
+    current_user_id = get_jwt_identity()
+    
+    try:
+        # Get all people with their visits in one query
+        people = Person.query.filter_by(user_id=current_user_id).order_by(Person.last_name, Person.first_name).all()
+        
+        # Get all locations in one query
+        locations = Location.query.filter_by(user_id=current_user_id).all()
+        location_dict = {loc.id: loc for loc in locations}
+        
+        # Get all person locations (visits) in one query
+        all_visits = PersonLocation.query.join(Person).filter(Person.user_id == current_user_id).all()
+        
+        # Group visits by person
+        visits_by_person = {}
+        for visit in all_visits:
+            if visit.person_id not in visits_by_person:
+                visits_by_person[visit.person_id] = []
+            visits_by_person[visit.person_id].append(visit)
+        
+        # Calculate stats for each person
+        people_stats = []
+        for person in people:
+            person_visits = visits_by_person.get(person.id, [])
+            
+            # Calculate days alive
+            if person.birth_date:
+                # Convert birth_date to datetime if it's a date
+                if isinstance(person.birth_date, date) and not isinstance(person.birth_date, datetime):
+                    birth_datetime = datetime.combine(person.birth_date, datetime.min.time())
+                else:
+                    birth_datetime = person.birth_date
+                days_alive = (datetime.utcnow() - birth_datetime).days
+            else:
+                days_alive = 0
+            
+            # Calculate countries visited
+            visited_location_ids = [visit.location_id for visit in person_visits]
+            visited_locations = [location_dict[loc_id] for loc_id in visited_location_ids if loc_id in location_dict]
+            countries = set(loc.country for loc in visited_locations)
+            
+            # Calculate temperature stats for this person
+            highest_temp = 0
+            lowest_temp = 0
+            
+            if person_visits:
+                # Get weather data for this person's specific visits
+                from app.models.weather_record import WeatherRecord
+                
+                all_temperatures = []
+                
+                for visit in person_visits:
+                    location = location_dict.get(visit.location_id)
+                    if location:
+                        # Get weather records for this location
+                        weather_records = WeatherRecord.query.filter_by(location_id=location.id).all()
+                        
+                        # Filter to realistic temperature range for California locations
+                        valid_temps = [record.temperature for record in weather_records 
+                                     if 0 <= record.temperature <= 45]
+                        all_temperatures.extend(valid_temps)
+                
+                if all_temperatures:
+                    highest_temp = max(all_temperatures)
+                    lowest_temp = min(all_temperatures)
+            
+            people_stats.append({
+                'id': person.id,
+                'first_name': person.first_name,
+                'last_name': person.last_name,
+                'days_alive': days_alive,
+                'total_visits': len(person_visits),
+                'countries': len(countries),
+                'highest_temp': highest_temp,
+                'lowest_temp': lowest_temp,
+                'visits': [visit.to_dict() for visit in person_visits]
+            })
+        
+        return jsonify({
+            'people': people_stats,
+            'locations': [loc.to_dict() for loc in locations]
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching homepage stats: {e}")
+        return jsonify({'error': 'Failed to fetch homepage stats'}), 500

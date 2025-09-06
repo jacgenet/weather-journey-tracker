@@ -6,31 +6,34 @@ import {
   Card,
   CardContent,
   Grid,
-  Chip,
   CircularProgress,
   Alert,
+  Avatar,
   Button,
-  IconButton,
-  Toolbar,
   AppBar,
+  Toolbar,
+  IconButton,
+  Menu,
+  MenuItem,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
-  Home,
-  Menu,
   WbSunny,
   Thermostat,
   LocationOn,
   Public,
   CalendarToday,
-  Cloud,
-  Map,
-  People as PeopleIcon,
-  Settings,
+  Star,
+  Air,
+  Menu as MenuIcon,
+  Logout as LogoutIcon,
+  AccountCircle,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { peopleService, Person } from '../services/peopleService';
-import { weatherService } from '../services/weatherService';
+import { peopleService } from '../services/peopleService';
 import { usePreferences } from '../contexts/PreferencesContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PersonStats {
   id: number;
@@ -38,18 +41,23 @@ interface PersonStats {
   daysAlive: number;
   highestTemp: number;
   lowestTemp: number;
+  avgTemp: number;
   totalVisits: number;
   countries: number;
-  temperatureUnit: 'C' | 'F';
+  temperatureUnit: 'celsius' | 'fahrenheit';
 }
 
 const HomePage: React.FC = () => {
-  const [people, setPeople] = useState<Person[]>([]);
   const [personStats, setPersonStats] = useState<PersonStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
-  const { temperatureUnit } = usePreferences();
+  const { preferences } = usePreferences();
+  const { logout } = useAuth();
+  const temperatureUnit = preferences.temperatureUnit;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
     fetchPeopleAndStats();
@@ -60,51 +68,55 @@ const HomePage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch all people
-      const peopleData = await peopleService.getPeople();
-      setPeople(peopleData);
-
-      // Calculate stats for each person
-      const statsPromises = peopleData.map(async (person) => {
-        try {
-          // Get person's timeline events for stats calculation
-          const timelineEvents = await getPersonTimelineEvents(person.id);
-          
-          // Calculate days alive
-          const daysAlive = calculateDaysAlive(person.birth_date);
-          
-          // Calculate temperature stats
-          const tempStats = await calculateTemperatureStats(person.id, timelineEvents);
-          
-          // Calculate visit and country stats
-          const visitStats = calculateVisitStats(timelineEvents);
-          
-          return {
-            id: person.id,
-            name: person.first_name,
-            daysAlive,
-            highestTemp: tempStats.highest,
-            lowestTemp: tempStats.lowest,
-            totalVisits: visitStats.totalVisits,
-            countries: visitStats.countries,
-            temperatureUnit: temperatureUnit,
-          };
-        } catch (error) {
-          console.error(`Error calculating stats for ${person.first_name}:`, error);
-          return {
-            id: person.id,
-            name: person.first_name,
-            daysAlive: 0,
-            highestTemp: 0,
-            lowestTemp: 0,
-            totalVisits: 0,
-            countries: 0,
-            temperatureUnit: temperatureUnit,
-          };
-        }
+      // Get basic stats and dashboard temperatures in parallel
+      const [homepageData, dashboardTemps] = await Promise.all([
+        peopleService.getHomepageStats(),
+        peopleService.getDashboardTemps()
+      ]);
+      
+      const { people } = homepageData;
+      const { people_temps } = dashboardTemps;
+      
+      // Create a map of person_id to dashboard temperatures
+      const tempMap = new Map();
+      people_temps.forEach(temp => {
+        tempMap.set(temp.person_id, {
+          highest_temp: temp.highest_temp,
+          lowest_temp: temp.lowest_temp,
+          avg_temp: temp.avg_temp
+        });
+      });
+      
+      // Convert to the format expected by the UI
+      const stats = people.map(person => {
+        // Convert temperatures from Celsius to user's preferred unit
+        const convertTemperature = (celsius: number): number => {
+          if (temperatureUnit === 'fahrenheit') {
+            return (celsius * 9/5) + 32;
+          }
+          return celsius;
+        };
+        
+        // Use dashboard temperatures if available, otherwise fall back to homepage temps
+        const temps = tempMap.get(person.id) || {
+          highest_temp: person.highest_temp || 0,
+          lowest_temp: person.lowest_temp || 0,
+          avg_temp: 0  // No fallback for avg_temp since it's not in homepage data
+        };
+        
+        return {
+          id: person.id,
+          name: person.first_name,
+          daysAlive: person.days_alive,
+          highestTemp: convertTemperature(temps.highest_temp),
+          lowestTemp: convertTemperature(temps.lowest_temp),
+          avgTemp: convertTemperature(temps.avg_temp),
+          totalVisits: person.total_visits,
+          countries: person.countries,
+          temperatureUnit: temperatureUnit,
+        };
       });
 
-      const stats = await Promise.all(statsPromises);
       setPersonStats(stats);
     } catch (error) {
       console.error('Error fetching people and stats:', error);
@@ -114,45 +126,10 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const getPersonTimelineEvents = async (personId: number) => {
-    try {
-      // This would need to be implemented in the backend
-      // For now, return empty array
-      return [];
-    } catch (error) {
-      console.error('Error fetching timeline events:', error);
-      return [];
-    }
-  };
 
-  const calculateDaysAlive = (birthDate?: string): number => {
-    if (!birthDate) return 0;
-    const birth = new Date(birthDate);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - birth.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
 
-  const calculateTemperatureStats = async (personId: number, timelineEvents: any[]) => {
-    // This would calculate from weather data
-    // For now, return mock data
-    return {
-      highest: temperatureUnit === 'F' ? 102.5 : 39.2,
-      lowest: temperatureUnit === 'F' ? 50.6 : 10.3,
-    };
-  };
-
-  const calculateVisitStats = (timelineEvents: any[]) => {
-    // This would calculate from timeline events
-    // For now, return mock data
-    return {
-      totalVisits: 6,
-      countries: 2,
-    };
-  };
-
-  const formatTemperature = (temp: number, unit: 'C' | 'F'): string => {
-    if (unit === 'F') {
+  const formatTemperature = (temp: number, unit: 'celsius' | 'fahrenheit'): string => {
+    if (unit === 'fahrenheit') {
       return `${temp.toFixed(1)}°F`;
     } else {
       return `${temp.toFixed(1)}°C`;
@@ -163,9 +140,30 @@ const HomePage: React.FC = () => {
     navigate(`/app/people/${personId}`);
   };
 
+  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   const handleTitleClick = () => {
     navigate('/');
   };
+
+  const menuItems = [
+    // { text: 'Dashboard', path: '/app/dashboard' },
+    { text: 'People', path: '/app/people' },
+    { text: 'Locations', path: '/app/locations' },
+    { text: 'Weather', path: '/app/weather' },
+    { text: 'Profile', path: '/app/profile' },
+  ];
 
   if (loading) {
     return (
@@ -184,197 +182,549 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
-      {/* Header */}
-      <AppBar position="static" elevation={0} sx={{ backgroundColor: 'white', color: 'black' }}>
-        <Toolbar>
+    <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#ffffff' }}>
+      {/* Header - Airbnb Style */}
+      <AppBar 
+        position="sticky" 
+        elevation={0} 
+        sx={{ 
+          backgroundColor: 'white', 
+          color: 'black',
+          borderBottom: '1px solid #e0e0e0',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <Toolbar sx={{ px: { xs: 2, sm: 3 }, py: 1 }}>
           <Button
             onClick={handleTitleClick}
             sx={{
-              color: 'black',
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
+              color: '#FF5A5F',
+              fontSize: '1.8rem',
+              fontWeight: 800,
               textTransform: 'none',
+              letterSpacing: '-0.5px',
               '&:hover': {
-                backgroundColor: 'rgba(0,0,0,0.04)',
+                backgroundColor: 'rgba(255, 90, 95, 0.04)',
               },
             }}
-            startIcon={<WbSunny sx={{ color: '#ff9800' }} />}
+            startIcon={<WbSunny sx={{ color: '#FF5A5F', fontSize: '1.5rem' }} />}
           >
-            My Sunny Days
+            SunnyDays
           </Button>
           <Box sx={{ flexGrow: 1 }} />
-          <Button
-            onClick={() => navigate('/app/weather')}
-            startIcon={<Cloud />}
-            sx={{ color: 'black', mr: 1 }}
+          
+          {/* Navigation Menu - Airbnb Style */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
+            {menuItems.map((item) => (
+              <Button
+                key={item.text}
+                onClick={() => navigate(item.path)}
+                sx={{ 
+                  color: '#222222', 
+                  fontWeight: 500,
+                  textTransform: 'none',
+                  px: 2,
+                  py: 1,
+                  borderRadius: '22px',
+                  '&:hover': {
+                    backgroundColor: '#f7f7f7',
+                  }
+                }}
+              >
+                {item.text}
+              </Button>
+            ))}
+          </Box>
+
+          {/* Mobile Menu Button */}
+          <IconButton
+            sx={{ display: { xs: 'block', md: 'none' }, ml: 2 }}
+            onClick={handleProfileMenuOpen}
           >
-            Weather
-          </Button>
-          <Button
-            onClick={() => navigate('/app/locations')}
-            startIcon={<Map />}
-            sx={{ color: 'black', mr: 1 }}
+            <MenuIcon sx={{ color: '#222222' }} />
+          </IconButton>
+
+          {/* Desktop Profile Menu */}
+          <IconButton
+            size="large"
+            edge="end"
+            aria-label="account of current user"
+            aria-controls="menu-appbar"
+            aria-haspopup="true"
+            onClick={handleProfileMenuOpen}
+            sx={{ 
+              ml: 2,
+              display: { xs: 'none', md: 'block' }
+            }}
           >
-            Locations
-          </Button>
-          <Button
-            onClick={() => navigate('/app/people')}
-            startIcon={<PeopleIcon />}
-            sx={{ color: 'black', mr: 1 }}
+            <AccountCircle sx={{ color: '#222222' }} />
+          </IconButton>
+
+          <Menu
+            id="menu-appbar"
+            anchorEl={anchorEl}
+            anchorOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            keepMounted
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            open={Boolean(anchorEl)}
+            onClose={handleProfileMenuClose}
+            sx={{
+              '& .MuiPaper-root': {
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                border: '1px solid #e0e0e0',
+                mt: 1,
+              }
+            }}
           >
-            People
-          </Button>
-          <Button
-            onClick={() => navigate('/app/profile')}
-            startIcon={<Settings />}
-            sx={{ color: 'black' }}
-          >
-            Profile
-          </Button>
+            {/* Mobile Navigation Items */}
+            {isMobile && menuItems.map((item) => (
+              <MenuItem 
+                key={item.text}
+                onClick={() => { 
+                  navigate(item.path); 
+                  handleProfileMenuClose(); 
+                }}
+                sx={{
+                  color: '#222222',
+                  fontWeight: 500,
+                }}
+              >
+                {item.text}
+              </MenuItem>
+            ))}
+            {isMobile && <Box sx={{ borderTop: '1px solid #e0e0e0', my: 1 }} />}
+            <MenuItem onClick={() => { navigate('/app/profile'); handleProfileMenuClose(); }}>
+              Profile
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>
+              <LogoutIcon sx={{ mr: 1 }} />
+              Logout
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
 
-      {/* Main Content */}
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Grid container spacing={3}>
-          {personStats.map((person) => (
-            <Grid item xs={12} key={person.id}>
-              <Card
-                sx={{
-                  borderRadius: 3,
-                  boxShadow: 3,
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: 6,
-                  },
-                }}
-                onClick={() => handlePersonClick(person.id)}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  {/* Person Name */}
-                  <Typography
-                    variant="h4"
-                    component="h2"
+      {/* Main Content - Airbnb Style */}
+      <Box sx={{ backgroundColor: '#f7f7f7', minHeight: '100vh' }}>
+        <Container maxWidth="xl" sx={{ py: 6 }}>
+          {/* Welcome Section */}
+          <Box sx={{ mb: 6, textAlign: 'center' }}>
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 600,
+                color: '#222222',
+                mb: 2,
+                fontSize: { xs: '2rem', md: '2.5rem' },
+                letterSpacing: '-0.5px',
+              }}
+            >
+              Welcome to your weather journey
+            </Typography>
+            <Typography
+              variant="h6"
+              sx={{
+                color: '#717171',
+                fontWeight: 400,
+                maxWidth: '600px',
+                mx: 'auto',
+                lineHeight: 1.5,
+              }}
+            >
+              Track your life's weather patterns and discover the climate stories of your travels
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {personStats.map((person) => (
+              <Box key={person.id}>
+                <Card
+                  sx={{
+                    borderRadius: '16px',
+                    boxShadow: 'none',
+                    border: '1px solid #e0e0e0',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease-in-out',
+                    overflow: 'hidden',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+                      border: '1px solid #FF5A5F',
+                    },
+                  }}
+                  onClick={() => handlePersonClick(person.id)}
+                >
+                  {/* Card Header with Avatar */}
+                  <Box
                     sx={{
-                      fontWeight: 'bold',
-                      mb: 3,
-                      color: 'primary.main',
-                      textTransform: 'uppercase',
+                      background: 'linear-gradient(135deg, #FF5A5F 0%, #FF8A80 100%)',
+                      p: 3,
+                      color: 'white',
+                      position: 'relative',
                     }}
                   >
-                    {person.name}
-                  </Typography>
-
-                  {/* Stats Grid */}
-                  <Grid container spacing={2}>
-                    {/* Days Alive */}
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Box
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Avatar
                         sx={{
-                          p: 2,
-                          backgroundColor: 'primary.light',
-                          borderRadius: 2,
-                          textAlign: 'center',
+                          width: 60,
+                          height: 60,
+                          backgroundColor: 'rgba(255,255,255,0.2)',
+                          mr: 2,
+                          fontSize: '1.5rem',
+                          fontWeight: 600,
                         }}
                       >
-                        <CalendarToday sx={{ color: 'primary.main', mb: 1 }} />
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                          Days Alive
+                        {person.name.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Box>
+                        <Typography
+                          variant="h5"
+                          sx={{
+                            fontWeight: 600,
+                            color: 'white',
+                            mb: 0.5,
+                          }}
+                        >
+                          {person.name}
                         </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                          {person.daysAlive.toLocaleString()}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Star sx={{ fontSize: '1rem', mr: 0.5, color: '#FFD700' }} />
+                          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                            Weather Explorer
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Grid>
+                    </Box>
+                  </Box>
 
-                    {/* Temperature Stats */}
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Box
-                        sx={{
-                          p: 2,
-                          backgroundColor: 'warning.light',
-                          borderRadius: 2,
-                          textAlign: 'center',
-                        }}
-                      >
-                        <Thermostat sx={{ color: 'warning.main', mb: 1 }} />
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                          Highest Temp
-                        </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'warning.main' }}>
-                          {formatTemperature(person.highestTemp, person.temperatureUnit)}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                  {/* Stats Section - Horizontal Layout */}
+                  <CardContent sx={{ p: 3, backgroundColor: 'white' }}>
+                    <Grid container spacing={3}>
+                      {/* Days Alive */}
+                      <Grid item xs={6} sm={4} md={2.4}>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: '12px',
+                              backgroundColor: '#E8F5E8',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mx: 'auto',
+                              mb: 1.5,
+                            }}
+                          >
+                            <CalendarToday sx={{ color: '#00A699', fontSize: '1.5rem' }} />
+                          </Box>
+                          <Typography 
+                            variant="h4" 
+                            sx={{ 
+                              fontWeight: 600, 
+                              color: '#222222',
+                              mb: 0.5,
+                              fontSize: '1.8rem',
+                            }}
+                          >
+                            {person.daysAlive.toLocaleString()}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: '#717171',
+                              fontWeight: 500,
+                              fontSize: '0.875rem',
+                            }}
+                          >
+                            Days Alive
+                          </Typography>
+                        </Box>
+                      </Grid>
 
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Box
-                        sx={{
-                          p: 2,
-                          backgroundColor: 'info.light',
-                          borderRadius: 2,
-                          textAlign: 'center',
-                        }}
-                      >
-                        <Thermostat sx={{ color: 'info.main', mb: 1 }} />
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                          Lowest Temp
-                        </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'info.main' }}>
-                          {formatTemperature(person.lowestTemp, person.temperatureUnit)}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                      {/* Highest Temperature */}
+                      <Grid item xs={6} sm={4} md={2.4}>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: '12px',
+                              backgroundColor: '#FFF2E8',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mx: 'auto',
+                              mb: 1.5,
+                            }}
+                          >
+                            <Thermostat sx={{ color: '#FF5A5F', fontSize: '1.5rem' }} />
+                          </Box>
+                          <Typography 
+                            variant="h4" 
+                            sx={{ 
+                              fontWeight: 600, 
+                              color: '#222222',
+                              mb: 0.5,
+                              fontSize: '1.8rem',
+                            }}
+                          >
+                            {formatTemperature(person.highestTemp, person.temperatureUnit)}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: '#717171',
+                              fontWeight: 500,
+                              fontSize: '0.875rem',
+                            }}
+                          >
+                            Highest Temp
+                          </Typography>
+                        </Box>
+                      </Grid>
 
-                    {/* Visit Stats */}
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Box
-                        sx={{
-                          p: 2,
-                          backgroundColor: 'success.light',
-                          borderRadius: 2,
-                          textAlign: 'center',
-                        }}
-                      >
-                        <LocationOn sx={{ color: 'success.main', mb: 1 }} />
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                          Total Visits
-                        </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                          {person.totalVisits}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                      {/* Lowest Temperature */}
+                      <Grid item xs={6} sm={4} md={2.4}>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: '12px',
+                              backgroundColor: '#E8F4FD',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mx: 'auto',
+                              mb: 1.5,
+                            }}
+                          >
+                            <Air sx={{ color: '#0088CC', fontSize: '1.5rem' }} />
+                          </Box>
+                          <Typography 
+                            variant="h4" 
+                            sx={{ 
+                              fontWeight: 600, 
+                              color: '#222222',
+                              mb: 0.5,
+                              fontSize: '1.8rem',
+                            }}
+                          >
+                            {formatTemperature(person.lowestTemp, person.temperatureUnit)}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: '#717171',
+                              fontWeight: 500,
+                              fontSize: '0.875rem',
+                            }}
+                          >
+                            Lowest Temp
+                          </Typography>
+                        </Box>
+                      </Grid>
 
-                    {/* Countries */}
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Box
-                        sx={{
-                          p: 2,
-                          backgroundColor: 'secondary.light',
-                          borderRadius: 2,
-                          textAlign: 'center',
-                        }}
-                      >
-                        <Public sx={{ color: 'secondary.main', mb: 1 }} />
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                          Countries
-                        </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
-                          {person.countries}
-                        </Typography>
-                      </Box>
+                      {/* Average Temperature */}
+                      <Grid item xs={6} sm={4} md={2.4}>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: '12px',
+                              backgroundColor: '#F0FDF4',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mx: 'auto',
+                              mb: 1.5,
+                            }}
+                          >
+                            <Thermostat sx={{ color: '#10B981', fontSize: '1.5rem' }} />
+                          </Box>
+                          <Typography 
+                            variant="h4" 
+                            sx={{ 
+                              fontWeight: 600, 
+                              color: '#222222',
+                              mb: 0.5,
+                              fontSize: '1.8rem',
+                            }}
+                          >
+                            {formatTemperature(person.avgTemp, person.temperatureUnit)}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: '#717171',
+                              fontWeight: 500,
+                              fontSize: '0.875rem',
+                            }}
+                          >
+                            Average Temp
+                          </Typography>
+                        </Box>
+                      </Grid>
+
+                      {/* Total Visits */}
+                      <Grid item xs={6} sm={4} md={2.4}>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: '12px',
+                              backgroundColor: '#F0F8FF',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mx: 'auto',
+                              mb: 1.5,
+                            }}
+                          >
+                            <LocationOn sx={{ color: '#9148FF', fontSize: '1.5rem' }} />
+                          </Box>
+                          <Typography 
+                            variant="h4" 
+                            sx={{ 
+                              fontWeight: 600, 
+                              color: '#222222',
+                              mb: 0.5,
+                              fontSize: '1.8rem',
+                            }}
+                          >
+                            {person.totalVisits}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: '#717171',
+                              fontWeight: 500,
+                              fontSize: '0.875rem',
+                            }}
+                          >
+                            Total Visits
+                          </Typography>
+                        </Box>
+                      </Grid>
+
+                      {/* Countries Visited */}
+                      <Grid item xs={6} sm={4} md={2.4}>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: '12px',
+                              backgroundColor: '#FFF8E1',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mx: 'auto',
+                              mb: 1.5,
+                            }}
+                          >
+                            <Public sx={{ color: '#FFB400', fontSize: '1.5rem' }} />
+                          </Box>
+                          <Typography 
+                            variant="h4" 
+                            sx={{ 
+                              fontWeight: 600, 
+                              color: '#222222',
+                              mb: 0.5,
+                              fontSize: '1.8rem',
+                            }}
+                          >
+                            {person.countries}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: '#717171',
+                              fontWeight: 500,
+                              fontSize: '0.875rem',
+                            }}
+                          >
+                            Countries
+                          </Typography>
+                        </Box>
+                      </Grid>
                     </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+                  </CardContent>
+                </Card>
+              </Box>
+            ))}
+          </Box>
+
+          {/* Empty State */}
+          {personStats.length === 0 && (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Box
+                sx={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: '50%',
+                  backgroundColor: '#f7f7f7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 3,
+                }}
+              >
+                <WbSunny sx={{ fontSize: '3rem', color: '#717171' }} />
+              </Box>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 600,
+                  color: '#222222',
+                  mb: 2,
+                }}
+              >
+                No weather data yet
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: '#717171',
+                  mb: 4,
+                  maxWidth: '400px',
+                  mx: 'auto',
+                }}
+              >
+                Start tracking your weather journey by adding locations and people to your account.
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => navigate('/app/people')}
+                sx={{
+                  backgroundColor: '#FF5A5F',
+                  borderRadius: '8px',
+                  px: 4,
+                  py: 1.5,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: '#E00007',
+                  },
+                }}
+              >
+                Get Started
+              </Button>
+            </Box>
+          )}
+        </Container>
+      </Box>
     </Box>
   );
 };

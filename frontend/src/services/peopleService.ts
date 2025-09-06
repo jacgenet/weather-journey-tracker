@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:9000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:9000/api';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -127,4 +127,15 @@ export const peopleService = {
   async deleteVisit(personId: number, visitId: number): Promise<void> {
     await api.delete(`/people/${personId}/visits/${visitId}`);
   },
+
+  // Homepage stats - efficient single call
+  async getHomepageStats(): Promise<{ people: any[], locations: any[] }> {
+    const response = await api.get('/people/homepage-stats');
+    return response.data;
+  },
+
+  async getDashboardTemps(): Promise<{ people_temps: any[] }> {
+    const response = await api.get('/people/dashboard-temps');
+    return response.data;
+  }
 };

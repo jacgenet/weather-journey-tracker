@@ -2,18 +2,10 @@ import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
-  Drawer,
   AppBar,
   Toolbar,
-  List,
-  Typography,
-  Divider,
+  Button,
   IconButton,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Avatar,
   Menu,
   MenuItem,
   useTheme,
@@ -21,30 +13,19 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  LocationOn as LocationIcon,
-  WbSunny as WeatherIcon,
-  People as PeopleIcon,
-  Person as ProfileIcon,
+  WbSunny,
   Logout as LogoutIcon,
   AccountCircle,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
-const drawerWidth = 240;
-
 const Layout: React.FC = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -59,65 +40,83 @@ const Layout: React.FC = () => {
     navigate('/login');
   };
 
+  const handleTitleClick = () => {
+    navigate('/');
+  };
+
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Locations', icon: <LocationIcon />, path: '/locations' },
-    { text: 'Weather', icon: <WeatherIcon />, path: '/weather' },
-    { text: 'People', icon: <PeopleIcon />, path: '/people' },
-    { text: 'Profile', icon: <ProfileIcon />, path: '/profile' },
+    // { text: 'Dashboard', path: '/app/dashboard' },
+    { text: 'People', path: '/app/people' },
+    { text: 'Locations', path: '/app/locations' },
+    { text: 'Weather', path: '/app/weather' },
+    { text: 'Profile', path: '/app/profile' },
   ];
 
-  const drawer = (
-    <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          Weather Tracker
-        </Typography>
-      </Toolbar>
-      <Divider />
-      <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => {
-                navigate(item.path);
-                if (isMobile) {
-                  setMobileOpen(false);
-                }
-              }}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </div>
-  );
-
   return (
-    <Box sx={{ display: 'flex' }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          ml: { md: `${drawerWidth}px` },
+    <Box sx={{ flexGrow: 1, minHeight: '100vh', backgroundColor: '#ffffff' }}>
+      {/* Header - Airbnb Style */}
+      <AppBar 
+        position="sticky" 
+        elevation={0} 
+        sx={{ 
+          backgroundColor: 'white', 
+          color: 'black',
+          borderBottom: '1px solid #e0e0e0',
+          backdropFilter: 'blur(10px)',
         }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+        <Toolbar sx={{ px: { xs: 2, sm: 3 }, py: 1 }}>
+          <Button
+            onClick={handleTitleClick}
+            sx={{
+              color: '#FF5A5F',
+              fontSize: '1.8rem',
+              fontWeight: 800,
+              textTransform: 'none',
+              letterSpacing: '-0.5px',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 90, 95, 0.04)',
+              },
+            }}
+            startIcon={<WbSunny sx={{ color: '#FF5A5F', fontSize: '1.5rem' }} />}
           >
-            <MenuIcon />
+            SunnyDays
+          </Button>
+          <Box sx={{ flexGrow: 1 }} />
+          
+          {/* Navigation Menu - Airbnb Style */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
+            {menuItems.map((item) => (
+              <Button
+                key={item.text}
+                onClick={() => navigate(item.path)}
+                sx={{ 
+                  color: location.pathname === item.path ? '#FF5A5F' : '#222222', 
+                  fontWeight: location.pathname === item.path ? 600 : 500,
+                  textTransform: 'none',
+                  px: 2,
+                  py: 1,
+                  borderRadius: '22px',
+                  backgroundColor: location.pathname === item.path ? 'rgba(255, 90, 95, 0.08)' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: location.pathname === item.path ? 'rgba(255, 90, 95, 0.12)' : '#f7f7f7',
+                  }
+                }}
+              >
+                {item.text}
+              </Button>
+            ))}
+          </Box>
+
+          {/* Mobile Menu Button */}
+          <IconButton
+            sx={{ display: { xs: 'block', md: 'none' }, ml: 2 }}
+            onClick={handleProfileMenuOpen}
+          >
+            <MenuIcon sx={{ color: '#222222' }} />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {menuItems.find(item => item.path === location.pathname)?.text || 'Weather Tracker'}
-          </Typography>
+
+          {/* Desktop Profile Menu */}
           <IconButton
             size="large"
             edge="end"
@@ -125,10 +124,14 @@ const Layout: React.FC = () => {
             aria-controls="menu-appbar"
             aria-haspopup="true"
             onClick={handleProfileMenuOpen}
-            color="inherit"
+            sx={{ 
+              ml: 2,
+              display: { xs: 'none', md: 'block' }
+            }}
           >
-            <AccountCircle />
+            <AccountCircle sx={{ color: '#222222' }} />
           </IconButton>
+
           <Menu
             id="menu-appbar"
             anchorEl={anchorEl}
@@ -143,8 +146,33 @@ const Layout: React.FC = () => {
             }}
             open={Boolean(anchorEl)}
             onClose={handleProfileMenuClose}
+            sx={{
+              '& .MuiPaper-root': {
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                border: '1px solid #e0e0e0',
+                mt: 1,
+              }
+            }}
           >
-            <MenuItem onClick={() => { navigate('/profile'); handleProfileMenuClose(); }}>
+            {/* Mobile Navigation Items */}
+            {isMobile && menuItems.map((item) => (
+              <MenuItem 
+                key={item.text}
+                onClick={() => { 
+                  navigate(item.path); 
+                  handleProfileMenuClose(); 
+                }}
+                sx={{
+                  color: location.pathname === item.path ? '#FF5A5F' : '#222222',
+                  fontWeight: location.pathname === item.path ? 600 : 500,
+                }}
+              >
+                {item.text}
+              </MenuItem>
+            ))}
+            {isMobile && <Box sx={{ borderTop: '1px solid #e0e0e0', my: 1 }} />}
+            <MenuItem onClick={() => { navigate('/app/profile'); handleProfileMenuClose(); }}>
               Profile
             </MenuItem>
             <MenuItem onClick={handleLogout}>
@@ -154,45 +182,9 @@ const Layout: React.FC = () => {
           </Menu>
         </Toolbar>
       </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-        aria-label="mailbox folders"
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
-          }}
-          sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-        }}
-      >
-        <Toolbar />
+
+      {/* Main Content */}
+      <Box component="main" sx={{ flexGrow: 1 }}>
         <Outlet />
       </Box>
     </Box>
